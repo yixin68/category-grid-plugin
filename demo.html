@@ -3,787 +3,1431 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>品类网格拆解插件 Demo</title>
+<title>供应链 Agent · 品类网格拆解 Demo</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script>
 tailwind.config = {
-  theme: {
-    extend: {
-      colors: {
-        brand: { 50:'#f0f7ff',100:'#e0f2fe',200:'#bae6fd',300:'#7dd3fc',400:'#38bdf8',500:'#0284c7',600:'#0369a1',700:'#0369a1' },
-        ai: { 50:'#faf5ff',100:'#f3e8ff',500:'#a855f7',600:'#9333ea' }
-      }
-    }
-  }
+  theme: { extend: { colors: {
+    brand: { 50:'#f4efff',100:'#ece2ff',200:'#d9c6ff',300:'#bea0ff',400:'#9f72ff',500:'#7c4dff',600:'#6839e8',700:'#5126c7' },
+    ai: { 50:'#f4f4f6',100:'#eaeaee',300:'#c7c7cc',500:'#6e6e73',600:'#48484a' },
+    ink: '#17171f', ink2:'#6f7280', line:'#e8e8f0',
+    pos:'#1a9d5f', posbg:'#e8f6ee', neg:'#e0322a', negbg:'#fdecec'
+  } } }
 }
 </script>
 <style>
-.no-scrollbar::-webkit-scrollbar{display:none}
-.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
-.custom-scrollbar::-webkit-scrollbar{width:6px;height:6px}
-.custom-scrollbar::-webkit-scrollbar-track{background:transparent}
-.custom-scrollbar::-webkit-scrollbar-thumb{background-color:#cbd5e1;border-radius:20px}
-.fade-in{animation:fadeIn .3s ease-in-out forwards}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.slide-up{animation:slideUp .4s cubic-bezier(.16,1,.3,1) forwards}
-@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.step-dot{transition:all .3s}
-.step-dot.active{transform:scale(1.2)}
-.pipeline-line{transition:width .5s ease}
+  html,body{font-family:-apple-system,'SF Pro Text','SF Pro Display','Helvetica Neue','PingFang SC','Microsoft YaHei',sans-serif;letter-spacing:-0.01em}
+  body{background:#f6f6f8;color:#17171f}
+  .no-scrollbar::-webkit-scrollbar{display:none}
+  .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+  .cs::-webkit-scrollbar{width:8px;height:8px}
+  .cs::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:20px}
+  .cs::-webkit-scrollbar-thumb:hover{background:#a1a1a6}
+  .fade{animation:fade .35s ease forwards}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .slideup{animation:slideup .3s cubic-bezier(.16,1,.3,1) forwards}
+  @keyframes slideup{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+  .pulse{animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .typing span{animation:blink 1.2s infinite}
+  .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.3}30%{opacity:1}}
+  input[type=range]{-webkit-appearance:none;height:5px;border-radius:5px;background:#e9e7f7}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;cursor:pointer;box-shadow:0 4px 12px rgba(104,57,232,.22);border:1px solid #d9c6ff}
+  .glass{background:rgba(255,255,255,0.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px)}
+  .spin{animation:spin 0.9s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+  :focus-visible{outline:2px solid #7c4dff;outline-offset:2px;border-radius:6px}
+  [role=button]{cursor:pointer}
+  button:focus:not(:focus-visible){outline:none}
+  select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236f7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 7px center;background-size:11px;padding-right:24px;cursor:pointer}
 </style>
 </head>
-<body class="bg-slate-50 h-screen overflow-hidden font-sans">
+<body class="bg-[#f6f6f8] h-screen overflow-hidden text-ink">
 <div id="root" class="w-full h-full"></div>
 <script type="text/babel">
-const {useState,useMemo,useCallback,useEffect,useRef} = React;
+const {useState,useMemo,useEffect,useRef} = React;
 
-// ===== 扫地机 Demo 数据 =====
-const DEMO_SKU_DATA = [
-  {name:'科沃斯T30 Pro',price:4299,brand:'科沃斯',type:'头部',func:'全能基站',navigate:'LDS+视觉',pet:false},
-  {name:'追觅X40 Pro',price:4999,brand:'追觅',type:'头部',func:'全能基站',navigate:'LDS',pet:false},
-  {name:'石头G20S',price:4599,brand:'石头',type:'头部',func:'全能基站',navigate:'结构光',pet:true},
-  {name:'云鲸J4',price:3299,brand:'云鲸',type:'高潜',func:'全能基站',navigate:'LDS',pet:false},
-  {name:'追觅S30',price:2999,brand:'追觅',type:'头部',func:'自动集尘',navigate:'LDS+视觉',pet:false},
-  {name:'科沃斯N20',price:2699,brand:'科沃斯',type:'头部',func:'自动集尘',navigate:'LDS',pet:false},
-  {name:'云鲸J4 Lite',price:2299,brand:'云鲸',type:'高潜',func:'自动集尘',navigate:'LDS',pet:false},
-  {name:'小米S10+',price:1999,brand:'小米',type:'头部',func:'自动集尘',navigate:'LDS',pet:false},
-  {name:'追觅M30S',price:1899,brand:'追觅',type:'头部',func:'单机',navigate:'视觉',pet:false},
-  {name:'添可FW3',price:1699,brand:'添可',type:'高潜',func:'单机',navigate:'LDS',pet:true},
-  {name:'小米C102',price:1299,brand:'小米',type:'头部',func:'单机',navigate:'视觉',pet:false},
-  {name:'由利V980Pro',price:1599,brand:'由利',type:'白牌',func:'单机',navigate:'LDS',pet:false},
-  {name:'海尔T37',price:1499,brand:'海尔',type:'高潜',func:'自动集尘',navigate:'LDS',pet:false},
-  {name:'美的M8',price:1399,brand:'美的',type:'高潜',func:'单机',navigate:'视觉',pet:false},
-  {name:'睿米EVA',price:2499,brand:'睿米',type:'白牌',func:'全能基站',navigate:'LDS',pet:false},
-  {name:'Shark RV1002',price:1899,brand:'Shark',type:'白牌',func:'自动集尘',navigate:'视觉',pet:true},
-  {name:'松下MC-RSF1K',price:3799,brand:'松下',type:'头部',func:'全能基站',navigate:'LDS',pet:false},
-  {name:'飞利浦FC8776',price:3499,brand:'飞利浦',type:'头部',func:'自动集尘',navigate:'LDS',pet:false},
-  {name:'浦桑尼克M8Pro',price:1299,brand:'浦桑尼克',type:'白牌',func:'单机',navigate:'视觉',pet:false},
-  {name:'京东京造Z9',price:999,brand:'京造',type:'白牌',func:'单机',navigate:'视觉',pet:false},
+/* =================== DEMO DATA (扫地机) =================== */
+const SKUS = [
+  {name:'科沃斯T30 Pro',price:4299,brand:'科沃斯',type:'头部',func:'全能基站',attrs:{导航方式:'LDS+视觉',材质:'ABS+铝合金',水箱:'0.27L',尘盒:'0.35L',噪音:'65dB',避障:'结构光',自动集尘:'是',自动洗拖:'是',烘干:'是'}},
+  {name:'追觅X40 Pro',price:4999,brand:'追觅',type:'头部',func:'全能基站',attrs:{导航方式:'LDS',材质:'ABS',水箱:'0.25L',尘盒:'0.40L',噪音:'63dB',避障:'AI视觉',自动集尘:'是',自动洗拖:'是',烘干:'是'}},
+  {name:'石头G20S',price:4599,brand:'石头',type:'头部',func:'全能基站',attrs:{导航方式:'结构光',材质:'ABS+金属',水箱:'0.20L',尘盒:'0.40L',噪音:'62dB',避障:'3D结构光',自动集尘:'是',自动洗拖:'是',烘干:'是'}},
+  {name:'云鲸J4',price:3299,brand:'云鲸',type:'高潜',func:'全能基站',attrs:{导航方式:'LDS',材质:'ABS',水箱:'0.22L',尘盒:'0.30L',噪音:'64dB',避障:'红外',自动集尘:'是',自动洗拖:'是',烘干:'否'}},
+  {name:'追觅S30',price:2999,brand:'追觅',type:'头部',func:'自动集尘',attrs:{导航方式:'LDS+视觉',材质:'ABS',水箱:'0.18L',尘盒:'0.35L',噪音:'66dB',避障:'结构光',自动集尘:'是',自动洗拖:'否',烘干:'否'}},
+  {name:'科沃斯N20',price:2699,brand:'科沃斯',type:'头部',func:'自动集尘',attrs:{导航方式:'LDS',材质:'ABS+PC',水箱:'0.16L',尘盒:'0.30L',噪音:'67dB',避障:'红外',自动集尘:'是',自动洗拖:'否',烘干:'否'}},
+  {name:'云鲸J4 Lite',price:2299,brand:'云鲸',type:'高潜',func:'自动集尘',attrs:{导航方式:'LDS',材质:'ABS',水箱:'0.15L',尘盒:'0.28L',噪音:'68dB',避障:'红外',自动集尘:'是',自动洗拖:'否',烘干:'否'}},
+  {name:'小米S10+',price:1999,brand:'小米',type:'头部',func:'自动集尘',attrs:{导航方式:'LDS',材质:'ABS',水箱:'0.15L',尘盒:'0.25L',噪音:'69dB',避障:'红外',自动集尘:'是',自动洗拖:'否',烘干:'否'}},
+  {name:'追觅M30S',price:1899,brand:'追觅',type:'头部',func:'单机',attrs:{导航方式:'LDS',材质:'ABS',水箱:'0.12L',尘盒:'0.22L',噪音:'70dB',避障:'红外',自动集尘:'否',自动洗拖:'否',烘干:'否'}},
+  {name:'添可FW3',price:1699,brand:'添可',type:'高潜',func:'单机',attrs:{导航方式:'视觉',材质:'ABS',水箱:'0.10L',尘盒:'0.20L',噪音:'72dB',避障:'视觉',自动集尘:'否',自动洗拖:'否',烘干:'否'}},
+  {name:'小米C102',price:1299,brand:'小米',type:'头部',func:'单机',attrs:{导航方式:'视觉',材质:'ABS',水箱:'0.08L',尘盒:'0.18L',噪音:'73dB',避障:'视觉',自动集尘:'否',自动洗拖:'否',烘干:'否'}},
+  {name:'由利V980Pro',price:1599,brand:'由利',type:'白牌',func:'单机',attrs:{导航方式:'LDS',材质:'ABS',水箱:'0.10L',尘盒:'0.20L',噪音:'71dB',避障:'红外',自动集尘:'否',自动洗拖:'否',烘干:'否'}},
+  {name:'海尔T37',price:1499,brand:'海尔',type:'高潜',func:'自动集尘',attrs:{导航方式:'视觉',材质:'ABS',水箱:'0.12L',尘盒:'0.22L',噪音:'70dB',避障:'视觉',自动集尘:'是',自动洗拖:'否',烘干:'否'}},
+  {name:'美的M8',price:1399,brand:'美的',type:'高潜',func:'单机',attrs:{导航方式:'视觉',材质:'ABS',水箱:'0.10L',尘盒:'0.18L',噪音:'72dB',避障:'视觉',自动集尘:'否',自动洗拖:'否',烘干:'否'}},
+  {name:'睿米EVA',price:2499,brand:'睿米',type:'白牌',func:'全能基站',attrs:{导航方式:'LDS',材质:'ABS',水箱:'0.20L',尘盒:'0.30L',噪音:'66dB',避障:'红外',自动集尘:'是',自动洗拖:'是',烘干:'否'}},
+  {name:'Shark RV1002',price:1899,brand:'Shark',type:'白牌',func:'自动集尘',attrs:{导航方式:'视觉',材质:'ABS',水箱:'0.12L',尘盒:'0.25L',噪音:'71dB',避障:'视觉',自动集尘:'是',自动洗拖:'否',烘干:'否'}},
+  {name:'松下MC-RSF1K',price:3799,brand:'松下',type:'头部',func:'全能基站',attrs:{导航方式:'LDS+视觉',材质:'ABS+金属',水箱:'0.22L',尘盒:'0.35L',噪音:'63dB',避障:'结构光',自动集尘:'是',自动洗拖:'是',烘干:'是'}},
+  {name:'飞利浦FC8776',price:3499,brand:'飞利浦',type:'头部',func:'自动集尘',attrs:{导航方式:'LDS',材质:'ABS+金属',水箱:'0.18L',尘盒:'0.32L',噪音:'65dB',避障:'红外',自动集尘:'是',自动洗拖:'否',烘干:'否'}},
+  {name:'浦桑尼克M8Pro',price:1299,brand:'浦桑尼克',type:'白牌',func:'单机',attrs:{导航方式:'视觉',材质:'ABS',水箱:'0.08L',尘盒:'0.16L',噪音:'74dB',避障:'视觉',自动集尘:'否',自动洗拖:'否',烘干:'否'}},
+  {name:'京东京造Z9',price:999,brand:'京造',type:'白牌',func:'单机',attrs:{导航方式:'视觉',材质:'ABS',水箱:'0.06L',尘盒:'0.14L',噪音:'76dB',避障:'视觉',自动集尘:'否',自动洗拖:'否',烘干:'否'}},
 ];
-
-const PRICE_BANDS = ['普及(<1.5K)','中端(1.5K-3K)','高端(3K-5K)','旗舰(>5K)'];
+const PRICE_BANDS = ['<1.5K','1.5K-3K','3K-5K','>5K'];
 const BRAND_TYPES = ['头部','高潜','白牌'];
-const FUNCTIONS = ['单机','自动集尘','全能基站'];
-const NAVIGATION = ['视觉','LDS','LDS+视觉','结构光'];
+const FUNCS = ['单机','自动集尘','全能基站'];
+const NAV = ['视觉','LDS','LDS+视觉','结构光'];
+const PET = ['宠物款','非宠物'];
+const DATA_DIMS = ['价格带','品牌类型','功能类型','导航方式'];  // 有逐品数据、可下钻匹配的维度
+const CHANNELS = ['京东自营','京东POP','天猫','抖音'];
+const SHOP_TYPES = ['旗舰店','专卖店','专营店','京东自营店'];
+const BIZ_MODES = ['自营','POP 第三方','厂直','经销代理'];
+const STD_BRANDS = ['科沃斯','追觅','石头','云鲸','小米','添可','海尔','美的','睿米','Shark','松下','飞利浦','浦桑尼克','由利','京造'];
+const METRICS_F = ['GMV','销量','增速','动销率','客单价'];
+const DEPT_TREE = {'家电事业群':{'大家电':['冰洗空','影音电视','厨卫大电'],'生活电器':['清洁电器','个护健康','环境电器'],'厨房电器':['烹饪电器','水料电器']},'3C事业群':{'手机通讯':['手机','智能配件'],'电脑办公':['笔记本','外设']}};
+const CAT_TREE = {'清洁电器':{'扫地机器人':['全能基站','自动集尘','单机'],'洗地机':['无线洗地机','有线洗地机'],'吸尘器':['手持','立式']},'个护健康':{'剃须刀':['电动','手动']},'环境电器':{'空气净化器':['家用','车载']}};
+const TIME_DIMS = ['近30天','近90天','近半年','近一年'];
+const CAT_LEVELS = {'一级':['清洁电器'],'二级':['扫地机','洗地机','吸尘器','蒸汽拖把'],'三级':['全能基站扫地机','自动集尘扫地机','单机扫地机','无线洗地机','有线洗地机','手持吸尘器','立式吸尘器','桶式吸尘器','蒸汽拖把']};
 
-const STEP_META = [
-  {id:1,title:'货盘圈选',icon:'filter',color:'brand',desc:'选定分析范围'},
-  {id:2,title:'属性推荐',icon:'sparkles',color:'ai',desc:'推荐拆解维度'},
-  {id:3,title:'属性提取与归一',icon:'git-merge',color:'emerald',desc:'归一化属性值'},
-  {id:4,title:'指标选择',icon:'bar-chart-2',color:'amber',desc:'选择分析指标'},
-  {id:5,title:'网格绘制与调优',icon:'grid-3x3',color:'blue',desc:'生成交叉网格'},
-  {id:6,title:'网格诊断',icon:'stethoscope',color:'indigo',desc:'标注机会与风险'},
-  {id:7,title:'机会仿真',icon:'rocket',color:'rose',desc:'推演策略效果'},
-];
+const STEP_NAMES = ['货盘圈选','属性推荐','指标选择','网格绘制与调优','网格诊断'];
+const GRID_DIMS = ['价格带','品牌类型','功能类型','品类'];
 
+const ATTR_DIMS = ['避障','材质','烘干'];
+const attrDimVals = dim => [...new Set(SKUS.map(s=>s.attrs&&s.attrs[dim]).filter(Boolean))];
+const dimVals = (dim,catLevel,selMap) => {
+  const all = dim==='价格带'?PRICE_BANDS : dim==='品牌类型'?BRAND_TYPES : dim==='功能类型'?FUNCS : dim==='导航方式'?NAV : dim==='宠物功能'?PET : dim==='品类'?CAT_LEVELS[catLevel||'二级'] : ATTR_DIMS.includes(dim)?attrDimVals(dim) : [];
+  if(selMap && selMap[dim] && selMap[dim].length) return all.filter(v=>selMap[dim].includes(v));
+  return all;
+};
+const combos = (dims,catLevel,selMap) => {
+  if(!dims||!dims.length) return [{label:'全部',parts:[]}];
+  let acc=[{label:'',parts:[]}];
+  dims.forEach(dim=>{ const vs=dimVals(dim,catLevel,selMap); const nx=[]; acc.forEach(a=>vs.forEach(v=>nx.push({label:a.label?a.label+' · '+v:v, parts:[...a.parts,{dim,val:v}]}))); acc=nx; });
+  return acc;
+};
+const computeGrid = (rowDims,colDims,catLevel,selMap) => {
+  const rows=combos(rowDims,catLevel,selMap), cols=combos(colDims,catLevel,selMap);
+  return {rows,cols,cells:rows.map(r=>cols.map(c=>{
+    const seed=(r.label+'|'+c.label).split('').reduce((a,b)=>a+b.charCodeAt(0),0);
+    return {scale:Math.round((seed%500+100)*10)/10, growth:Math.round(seed%60-15), share:Math.round((seed%40+10)*10)/10, sku:seed%9+1};
+  }))};
+};
+const cellColor = d => d<0 ? 'bg-negbg border-[#f6d3d3]' : 'bg-white border-[#ececee]';
 
-// ===== 步骤1: 货盘圈选 =====
-const Step1Cargo = ({data,onChange}) => {
-  const [method,setMethod] = useState('topn');
-  const [topn,setTopn] = useState(20);
-  const [keyword,setKeyword] = useState('');
-  const [filterBrand,setFilterBrand] = useState([]);
-  const [filterPrice,setFilterPrice] = useState([]);
-  const [selectedSkus,setSelectedSkus] = useState(DEMO_SKU_DATA.slice(0,15));
-  
-  const toggleBrand = (b) => setFilterBrand(prev => prev.includes(b) ? prev.filter(x=>x!==b) : [...prev,b]);
-  const togglePrice = (p) => setFilterPrice(prev => prev.includes(p) ? prev.filter(x=>x!==p) : [...prev,p]);
-  const toggleSku = (sku) => setSelectedSkus(prev => prev.find(s=>s.name===sku.name) ? prev.filter(s=>s.name!==sku.name) : [...prev,sku]);
-  
-  useEffect(()=>{onChange({skus:selectedSkus,count:selectedSkus.length});},[selectedSkus]);
-  
-  return (
-    <div className="space-y-5">
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-          <span className="w-5 h-5 bg-brand-500 text-white rounded flex items-center justify-center text-xs">1</span>
-          圈选方式
-        </h3>
-        <div className="flex gap-2 mb-4">
-          {[{k:'topn',l:'TopN'},{k:'keyword',l:'关键词'},{k:'condition',l:'条件筛选'},{k:'manual',l:'手动勾选'}].map(m=>(
-            <button key={m.k} onClick={()=>setMethod(m.k)} className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all ${method===m.k?'bg-brand-500 text-white border-brand-500 shadow-md':'bg-white text-slate-600 border-slate-200 hover:border-brand-300'}`}>{m.l}</button>
-          ))}
-        </div>
-        {method==='topn' && (
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500">取 Top</span>
-            <input type="number" value={topn} onChange={e=>setTopn(+e.target.value)} className="w-16 px-2 py-1 border border-slate-200 rounded text-sm font-bold text-center"/>
-            <span className="text-xs text-slate-500">SKU</span>
-          </div>
-        )}
-        {method==='keyword' && (
-          <input value={keyword} onChange={e=>setKeyword(e.target.value)} placeholder="输入品牌/型号关键词..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-brand-400"/>
-        )}
-        {method==='condition' && (
-          <div className="space-y-3">
-            <div>
-              <div className="text-xs font-bold text-slate-600 mb-1.5">品牌类型</div>
-              <div className="flex gap-2">{BRAND_TYPES.map(b=><button key={b} onClick={()=>toggleBrand(b)} className={`px-3 py-1 text-xs rounded-full border ${filterBrand.includes(b)?'bg-brand-50 border-brand-300 text-brand-700 font-bold':'border-slate-200 text-slate-500'}`}>{b}</button>)}</div>
-            </div>
-            <div>
-              <div className="text-xs font-bold text-slate-600 mb-1.5">价格带</div>
-              <div className="flex gap-2">{PRICE_BANDS.map(p=><button key={p} onClick={()=>togglePrice(p)} className={`px-3 py-1 text-xs rounded-full border ${filterPrice.includes(p)?'bg-brand-50 border-brand-300 text-brand-700 font-bold':'border-slate-200 text-slate-500'}`}>{p}</button>)}</div>
-            </div>
-          </div>
-        )}
+// ---- cell drill-down helpers ----
+const bandOf = p => p<1500?'<1.5K':p<3000?'1.5K-3K':p<5000?'3K-5K':'>5K';
+const skuVal = (s,dim,fix) => { const f=fix&&fix[s.name]; if(f&&f[dim]!=null) return f[dim]; return dim==='价格带'?bandOf(s.price):dim==='品牌类型'?s.type:dim==='功能类型'?s.func:(s.attrs&&s.attrs[dim]!=null?s.attrs[dim]:'__ALL__'); };
+const partMatch = (s,parts,fix) => parts.every(p=>{ const v=skuVal(s,p.dim,fix); return v==='__ALL__'?true:v===p.val; });
+const cellSkus = (rowParts,colParts,fix) => SKUS.filter(s=>partMatch(s,rowParts,fix)&&partMatch(s,colParts,fix));
+const skuStat=s=>{const seed=s.name.split('').reduce((a,c)=>a+c.charCodeAt(0),0);const sales=seed%400+80;const lowConfAttrs={};if(s.attrs){Object.entries(s.attrs).forEach(([k,v])=>{const aseed=(k+v).split('').reduce((a,c)=>a+c.charCodeAt(0),0);if(aseed%5===0) lowConfAttrs[k]={val:v,conf:aseed%40+25};});}return {sales,gmv:+(s.price*sales/10000).toFixed(1),channel:CHANNELS[seed%4],lowConfAttrs};};
+
+/* =================== SHARED CHAT PIECES =================== */
+const Agent = ({children,ts}) => (
+  <div className="flex gap-2.5 mb-4 fade max-w-[92%]">
+    <div className="w-7 h-7 rounded-full shrink-0 bg-gradient-to-br from-brand-500 to-[#63d8c9] flex items-center justify-center text-[12px] text-white font-black shadow-[0_6px_18px_rgba(124,77,255,0.22)]">AI</div>
+    <div>
+      <div className="text-[11px] text-ink2 mb-1">供应链 Agent{ts?<span className="ml-2">{ts}</span>:''}</div>
+      <div className="bg-white border border-[#e8e6f0] rounded-[18px] rounded-tl-md px-4 py-3 text-[13.5px] leading-relaxed shadow-[0_8px_26px_rgba(20,22,40,0.06)]">{children}</div>
+    </div>
+  </div>
+);
+const User = ({children}) => (
+  <div className="flex gap-2.5 mb-4 fade max-w-[92%] ml-auto flex-row-reverse">
+    <div className="w-7 h-7 rounded-full shrink-0 bg-[#ece2ff] flex items-center justify-center text-[11px] font-bold text-brand-700">我</div>
+    <div className="bg-brand-50 text-ink rounded-[18px] rounded-tr-md px-4 py-2.5 text-[13.5px] leading-relaxed border border-brand-100">{children}</div>
+  </div>
+);
+const Capture = ({code,children}) => (
+  <div className="flex gap-2.5 mb-4 fade max-w-[92%]">
+    <div className="w-7 shrink-0"></div>
+    <div className="bg-[#fafafa] border border-[#ececee] rounded-xl px-4 py-3 w-full">
+      <div className="text-[11px] font-semibold text-ink2 mb-1 flex items-center gap-1.5">
+        <svg className="w-3.5 h-3.5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3-7 3V5z"/></svg>
+        已捕获偏好，沉淀至 ERP 策略中心
       </div>
-      
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 mb-3">圈选结果 <span className="text-brand-500">{selectedSkus.length}</span> SKU</h3>
-        <div className="max-h-48 overflow-y-auto custom-scrollbar">
-          <div className="flex flex-wrap gap-1.5">
-            {DEMO_SKU_DATA.map(sku=>(
-              <button key={sku.name} onClick={()=>toggleSku(sku)} className={`text-[11px] px-2 py-1 rounded border transition-all ${selectedSkus.find(s=>s.name===sku.name)?'bg-ai-50 border-ai-300 text-ai-700 font-bold':'bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300'}`}>{sku.name}</button>
-            ))}
-          </div>
-        </div>
-      </div>
-      
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-        <span className="text-lg">🤖</span>
-        <div>
-          <div className="text-xs font-bold text-amber-800">Agent 策略捕获</div>
-          <div className="text-xs text-amber-700 mt-1">检测到您偏好 TopN 圈选方式，将保存为 <span className="font-bold bg-amber-100 px-1 rounded">scope_template</span> 供下次复用，同步至 ERP 策略中心</div>
-        </div>
-      </div>
+      <div className="text-[12.5px] text-[#333] leading-relaxed">{children}</div>
+      <div className="mt-1.5 text-[11px]"><span className="font-mono bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded">{code}</span></div>
+    </div>
+  </div>
+);
+const ConfirmBar = ({label,onConfirm,done}) => done ? (
+  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-1.5 text-[12px] text-emerald-600 font-bold">
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>已确认
+  </div>
+) : (
+  <div className="mt-3 pt-2.5 border-t border-slate-100">
+    <button onClick={onConfirm} className="px-5 py-2 rounded-full bg-brand-50 border border-brand-200 hover:bg-brand-100 text-brand-600 text-[12.5px] font-semibold transition-all">{label}</button>
+  </div>
+);
+const chip = (on)=>`text-[11.5px] px-2.5 py-1 rounded-full border transition-all cursor-pointer ${on?'bg-brand-50 border-brand-300 text-brand-700 font-bold':'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`;
+
+/* =================== STEP CHAT CONTROLS =================== */
+// each returns interactive controls that live INSIDE an agent bubble; edits App state
+const S1 = ({st,set,done,onConfirm,embed}) => {
+  const s1=st.s1||{};
+  const up = patch => set({s1:{...s1,...patch}});
+  const arrTog = (key,v) => { const a=s1[key]||[]; up({[key]: a.includes(v)?a.filter(x=>x!==v):[...a,v]}); };
+  const cc = on => `text-[11px] px-2 py-0.5 rounded-full border cursor-pointer transition-all ${on?'bg-brand-50 border-brand-300 text-brand-700 font-semibold':'bg-white border-[#e0e0e0] text-ink2 hover:border-brand-300'}`;
+  const chips = (key,vals) => <div className="flex flex-wrap gap-1.5">{vals.map(v=><span key={v} onClick={()=>!done&&arrTog(key,v)} className={cc((s1[key]||[]).includes(v))}>{v}</span>)}</div>;
+  const sw = (onKey) => <button disabled={done} onClick={()=>up({[onKey]:!s1[onKey]})} className={`w-8 h-[18px] rounded-full relative transition-colors shrink-0 ${s1[onKey]?'bg-brand-500':'bg-[#e0e0e0]'}`}><span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-all ${s1[onKey]?'left-[15px]':'left-0.5'}`}/></button>;
+  const sec = (onKey,title,body) => (
+    <div className={`rounded-lg border p-2.5 ${s1[onKey]?'border-brand-200 bg-brand-50/20':'border-[#ececee]'}`}>
+      <div className="flex items-center gap-2"><span className={`text-[12px] font-semibold flex-1 ${s1[onKey]?'text-ink':'text-ink2'}`}>{title}</span>{sw(onKey)}</div>
+      {s1[onKey] && <div className="mt-2">{body}</div>}
     </div>
   );
+  return (<div className="space-y-2">
+    <div className="text-[12px] text-slate-500">按需勾选、任意组合以下条件（命中商品取并集）：</div>
+    {sec('chanOn','① 分析渠道', chips('chans',CHANNELS))}
+    {sec('attrOn','② 店铺类型 / 经营模式 / 品牌类型',
+      <div className="space-y-2">
+        <div><div className="text-[10px] text-ink2 mb-1">店铺类型</div>{chips('shopTypes',SHOP_TYPES)}</div>
+        <div><div className="text-[10px] text-ink2 mb-1">经营模式</div>{chips('bizModes',BIZ_MODES)}</div>
+        <div><div className="text-[10px] text-ink2 mb-1">品牌类型</div>{chips('brandTypes',BRAND_TYPES)}</div>
+      </div>)}
+    {sec('brandOn','③ 标准品牌', <div className="max-h-24 overflow-y-auto cs">{chips('brands',STD_BRANDS)}</div>)}
+    {sec('priceOn','④ 价格带', chips('prices',PRICE_BANDS))}
+    {sec('kwOn','⑤ 标题关键词（支持 AND / OR / NOT）',
+      <input disabled={done} value={s1.kw||''} onChange={e=>up({kw:e.target.value})} placeholder="如：迷你 AND 大容量 NOT 商用" className="w-full border border-[#e0e0e0] rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-brand-400"/>)}
+    {sec('metricOn','⑥ 指标筛选',
+      <div className="flex items-center gap-2 flex-wrap text-[11.5px]">
+        <select disabled={done} value={s1.metricName} onChange={e=>up({metricName:e.target.value})} className="border border-[#e0e0e0] rounded-md px-2 py-1 outline-none font-semibold">{METRICS_F.map(m=><option key={m}>{m}</option>)}</select>
+        <div className="flex bg-[#f4f4f6] rounded-md p-0.5">{[['top','Top 款'],['range','数值范围']].map(([k,l])=><button key={k} disabled={done} onClick={()=>up({metricMode:k})} className={`px-2 py-0.5 rounded text-[11px] font-semibold ${s1.metricMode===k?'bg-white text-ink shadow-sm':'text-ink2'}`}>{l}</button>)}</div>
+        {s1.metricMode==='top'
+          ? <span className="flex items-center gap-1">Top<input disabled={done} type="number" value={s1.metricTop} onChange={e=>up({metricTop:+e.target.value})} className="w-16 border border-[#e0e0e0] rounded px-1.5 py-1 text-center outline-none"/>款</span>
+          : <span className="flex items-center gap-1"><input disabled={done} value={s1.metricMin} onChange={e=>up({metricMin:e.target.value})} placeholder="最小" className="w-14 border border-[#e0e0e0] rounded px-1.5 py-1 text-center outline-none"/>–<input disabled={done} value={s1.metricMax} onChange={e=>up({metricMax:e.target.value})} placeholder="最大" className="w-14 border border-[#e0e0e0] rounded px-1.5 py-1 text-center outline-none"/></span>}
+      </div>)}
+    <div className="text-[12px] text-slate-500">→ 命中 <b className="text-brand-600">1,247</b> 个商品，覆盖 GMV 约 <b className="text-brand-600">83%</b></div>
+    {!embed && <ConfirmBar label="✓ 确认货盘" onConfirm={onConfirm} done={done}/>}
+  </div>);
 };
 
-
-// ===== 步骤2: 属性推荐 =====
-const Step2Attributes = ({data,onChange}) => {
-  const [dimensions,setDimensions] = useState([
-    {name:'价格带',source:'用户决策',weight:50,selected:true},
-    {name:'品牌类型',source:'用户决策',weight:30,selected:true},
-    {name:'功能类型',source:'站外趋势',weight:15,selected:false},
-    {name:'导航方式',source:'策略模板',weight:5,selected:false},
-    {name:'宠物功能',source:'站外趋势',weight:10,selected:false},
-    {name:'清洁方式',source:'用户决策',weight:8,selected:false},
-  ]);
-  const toggle = (i) => {
-    const next = [...dimensions];
-    next[i].selected = !next[i].selected;
-    setDimensions(next);
-    onChange({dimensions:next.filter(d=>d.selected)});
-  };
-  const srcColor = (s) => s==='用户决策'?'bg-brand-50 text-brand-700':s==='站外趋势'?'bg-emerald-50 text-emerald-700':'bg-purple-50 text-purple-700';
-  
-  return (
-    <div className="space-y-5">
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
-          <span className="w-5 h-5 bg-ai-500 text-white rounded flex items-center justify-center text-xs">2</span>
-          推荐拆解维度
-        </h3>
-        <p className="text-xs text-slate-500 mb-4">基于 50%用户决策 + 30%站外趋势 + 20%策略模板 加权推荐</p>
-        <div className="space-y-2">
-          {dimensions.map((d,i)=>(
-            <div key={d.name} onClick={()=>toggle(i)} className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${d.selected?'bg-ai-50 border-ai-300 shadow-sm':'bg-white border-slate-200 hover:border-slate-300'}`}>
-              <div className="flex items-center gap-3">
-                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${d.selected?'bg-ai-500 border-ai-500':'border-slate-300'}`}>
-                  {d.selected && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>}
-                </div>
-                <span className={`text-sm font-bold ${d.selected?'text-slate-800':'text-slate-500'}`}>{d.name}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${srcColor(d.source)}`}>{d.source}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full ${d.selected?'bg-ai-500':'bg-slate-300'}`} style={{width:`${d.weight}%`}}/>
-                </div>
-                <span className="text-[10px] text-slate-400 w-8 text-right">{d.weight}%</span>
+const S2 = ({st,set,done,onConfirm,embed}) => {
+  const [expandDim,setExpandDim]=useState(null);
+  const [showMore,setShowMore]=useState(false);
+  const toggle=i=>{const d=st.s2dims.map((x,j)=>j===i?{...x,on:!x.on}:x);set({s2dims:d});};
+  const srcC=s=>s==='用户决策'?'bg-brand-50 text-brand-700':s==='站外趋势'?'bg-emerald-50 text-emerald-700':s==='更多'?'bg-[#f0f0f0] text-ink2':'bg-ai-50 text-ai-600';
+  const valSel=st.dimValSel||{};
+  const toggleVal=(dim,v)=>{const cur=valSel[dim]||[];const nx=cur.includes(v)?cur.filter(x=>x!==v):[...cur,v];set({dimValSel:{...valSel,[dim]:nx}});};
+  const clearVal=dim=>set({dimValSel:{...valSel,[dim]:[]}});
+  const addDim=dn=>{ if(st.s2dims.some(d=>d.name===dn))return; set({s2dims:[...st.s2dims,{name:dn,src:'更多',w:0,on:true}]}); setExpandDim(dn); };
+  const extra=ATTR_DIMS.filter(dn=>!st.s2dims.some(d=>d.name===dn));
+  const vchip=on=>`text-[11px] px-2 py-0.5 rounded-full border cursor-pointer transition-all ${on?'bg-brand-50 border-brand-300 text-brand-700 font-semibold':'bg-white border-[#e0e0e0] text-ink2 hover:border-brand-300'}`;
+  return (<div>
+    <div className="text-[12px] text-slate-500 mb-2">推荐维度（50%决策 + 30%趋势 + 20%策略）· 勾选增减，可展开只看部分维度值</div>
+    <div className="space-y-1.5">
+      {st.s2dims.map((d,i)=>{
+        const vals=dimVals(d.name,st.s5catLevel);
+        const sel=valSel[d.name]||[];
+        const isOpen=expandDim===d.name;
+        return (
+        <div key={d.name} className={`rounded-lg border ${d.on?'bg-brand-50/60 border-brand-200':'bg-white border-slate-200'}`}>
+          <div className="flex items-center gap-2.5 px-3 py-2">
+            <div onClick={()=>!done&&toggle(i)} className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
+              <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${d.on?'bg-brand-500 border-brand-500':'border-slate-300'}`}>{d.on&&<svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>}</div>
+              <span className={`text-[12.5px] font-bold ${d.on?'text-slate-800':'text-slate-400'}`}>{d.name}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${srcC(d.src)}`}>{d.src}</span>
+              <span className="text-[10px] text-slate-400">{d.w}%</span>
+            </div>
+            {d.on && vals.length>0 && <button onClick={()=>setExpandDim(isOpen?null:d.name)} className="shrink-0 text-[10px] px-2 py-1 rounded-full border border-[#e0e0e0] bg-white text-ink2 font-semibold hover:border-brand-300 hover:text-brand-600 transition-all flex items-center gap-1">{sel.length?`已选 ${sel.length}/${vals.length} 值`:`全部 ${vals.length} 值`}<svg className={`w-3 h-3 transition-transform ${isOpen?'rotate-180':''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6 6 6-6"/></svg></button>}
+          </div>
+          {d.on && isOpen && vals.length>0 && (
+            <div className="px-3 pb-2.5 pt-0.5 border-t border-brand-100">
+              <div className="flex items-center justify-between mb-1.5"><span className="text-[10px] text-ink2">勾选后只看这些值，不勾 = 全部</span>{sel.length>0 && <button onClick={()=>clearVal(d.name)} className="text-[10px] font-semibold text-brand-600 hover:underline">重置为全部</button>}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {vals.map(v=><span key={v} onClick={()=>!done&&toggleVal(d.name,v)} className={vchip(sel.includes(v))}>{v}</span>)}
               </div>
             </div>
-          ))}
+          )}
         </div>
-      </div>
-      
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 mb-3">维度组合预览</h3>
-        <div className="flex items-center gap-2 flex-wrap">
-          {dimensions.filter(d=>d.selected).map((d,i,arr)=>(
-            <React.Fragment key={d.name}>
-              <span className="bg-ai-50 text-ai-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-ai-200">{d.name}</span>
-              {i<arr.length-1 && <span className="text-slate-300 font-bold">×</span>}
-            </React.Fragment>
-          ))}
-          {dimensions.filter(d=>d.selected).length < 2 && <span className="text-xs text-slate-400">请至少选择2个维度</span>}
-        </div>
-      </div>
-      
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-        <span className="text-lg">🤖</span>
-        <div>
-          <div className="text-xs font-bold text-amber-800">Agent 策略捕获</div>
-          <div className="text-xs text-amber-700 mt-1">已记录您偏好的维度组合，保存为 <span className="font-bold bg-amber-100 px-1 rounded">dimension_preference</span>，后续同类品类自动复用</div>
-        </div>
-      </div>
+      );})}
     </div>
-  );
+    <div className="mt-2">
+      <button onClick={()=>setShowMore(s=>!s)} className="text-[11px] font-semibold text-brand-600 hover:underline flex items-center gap-1">查看更多维度<svg className={`w-3 h-3 transition-transform ${showMore?'rotate-180':''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6 6 6-6"/></svg></button>
+      {showMore && <div className="mt-1.5 rounded-lg border border-[#ececee] bg-[#fafafa] p-2.5">
+        <div className="text-[10px] text-ink2 mb-1.5">从更多商品属性中添加拆解维度：</div>
+        {extra.length? <div className="flex flex-wrap gap-1.5">{extra.map(dn=><span key={dn} onClick={()=>!done&&addDim(dn)} className="text-[11px] px-2 py-0.5 rounded-full border border-dashed border-brand-300 text-brand-600 bg-white cursor-pointer hover:bg-brand-50 transition-all">+ {dn}</span>)}</div>
+        : <div className="text-[10px] text-ink2">已全部加入</div>}
+      </div>}
+    </div>
+    {!embed && <ConfirmBar label="✓ 就用这些维度拆解" onConfirm={onConfirm} done={done}/>}
+  </div>);
 };
 
-
-// ===== 步骤3: 属性提取与归一 =====
-const Step3Normalize = ({data,onChange}) => {
-  const [attrs,setAttrs] = useState([
-    {name:'价格带',values:['<1.5K','1.5K-3K','3K-5K','>5K'],raw:['0-1499','1500-2999','3000-4999','5000+'],confidence:95,merged:false},
-    {name:'品牌类型',values:['头部','高潜','白牌'],raw:['一线品牌','新锐品牌','ODM/OEM'],confidence:62,merged:false},
-    {name:'功能类型',values:['单机','自动集尘','全能基站'],raw:['无基站','带集尘座','基站洗烘'],confidence:78,merged:false},
-    {name:'导航方式',values:['视觉','LDS','LDS+视觉','结构光'],raw:['视觉避障','激光导航','双模导航','结构光3D'],confidence:35,merged:true},
-  ]);
-  const toggleMerge = (i) => {
-    const next = [...attrs];
-    next[i].merged = !next[i].merged;
-    setAttrs(next);
-  };
-  
-  return (
-    <div className="space-y-5">
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
-          <span className="w-5 h-5 bg-emerald-500 text-white rounded flex items-center justify-center text-xs">3</span>
-          属性归一化验证
-        </h3>
-        <p className="text-xs text-slate-500 mb-4">基于置信度评分的归一化验证，低置信度需人工确认</p>
-        <div className="space-y-3">
-          {attrs.map((a,i)=>(
-            <div key={a.name} className={`rounded-lg border p-4 ${a.merged?'border-amber-300 bg-amber-50/50':'border-slate-200'}`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-slate-800">{a.name}</span>
-                <div className="flex items-center gap-2">
-                  {a.merged && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded">待合并确认</span>}
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${a.confidence>=80?'bg-emerald-50 text-emerald-700':a.confidence>=50?'bg-amber-50 text-amber-700':'bg-rose-50 text-rose-700'}`}>置信度 {a.confidence}%</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex-1">
-                  <div className="text-[10px] text-slate-400 mb-1">原始值</div>
-                  <div className="flex flex-wrap gap-1">{a.raw.map(v=><span key={v} className="text-[11px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded">{v}</span>)}</div>
-                </div>
-                <svg className="w-4 h-4 text-slate-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                <div className="flex-1">
-                  <div className="text-[10px] text-slate-400 mb-1">归一值</div>
-                  <div className="flex flex-wrap gap-1">{a.values.map(v=><span key={v} className="text-[11px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded font-bold">{v}</span>)}</div>
-                </div>
-              </div>
-              {a.confidence < 80 && (
-                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
-                  <button onClick={()=>toggleMerge(i)} className={`text-[11px] px-3 py-1 rounded font-bold transition-all ${a.merged?'bg-amber-500 text-white':'bg-white text-amber-700 border border-amber-300 hover:bg-amber-50'}`}>
-                    {a.merged?'已确认合并':'确认归一映射'}
-                  </button>
-                  <span className="text-[10px] text-slate-400">低置信度需人工确认</span>
-                </div>
-              )}
-            </div>
-          ))}
+const S3 = ({st,set,done,onConfirm,embed}) => {
+  const conf=i=>{const a=st.s3attrs.map((x,j)=>j===i?{...x,ok:true}:x);set({s3attrs:a});};
+  return (<div>
+    <div className="text-[12px] text-slate-500 mb-2">2 个属性置信度偏低，需你确认归一映射</div>
+    <div className="space-y-2">
+      {st.s3attrs.filter(a=>a.conf<80).map((a)=>{const i=st.s3attrs.indexOf(a);return(
+        <div key={a.name} className={`rounded-lg border p-3 ${a.ok?'border-[#d7ecdf] bg-posbg':'border-[#e6e6e8] bg-[#fafafa]'}`}>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[12.5px] font-bold">{a.name}</span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${a.conf>=50?'bg-[#f4f4f6] text-ink2':'bg-negbg text-neg'}`}>置信度 {a.conf}%</span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+            {a.raw.map(v=><span key={v} className="px-1.5 py-0.5 bg-[#f4f4f6] text-ink2 rounded">{v}</span>)}
+            <span className="text-slate-300 font-bold">→</span>
+            {a.norm.map(v=><span key={v} className="px-1.5 py-0.5 bg-posbg text-pos rounded font-bold">{v}</span>)}
+          </div>
+          {!done && <button onClick={()=>conf(i)} className={`mt-2 text-[11px] px-2.5 py-1 rounded font-semibold ${a.ok?'bg-pos text-white':'bg-white text-brand-700 border border-brand-300 hover:bg-brand-50'}`}>{a.ok?'✓ 已确认':'确认此映射'}</button>}
         </div>
-      </div>
-      
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-        <span className="text-lg">🤖</span>
-        <div>
-          <div className="text-xs font-bold text-amber-800">Agent 策略捕获</div>
-          <div className="text-xs text-amber-700 mt-1">归一规则已记录为 <span className="font-bold bg-amber-100 px-1 rounded">normalization_rule</span>，品牌类型映射(一线→头部, 新锐→高潜, ODM→白牌)将自动同步 ERP</div>
-        </div>
-      </div>
+      );})}
     </div>
-  );
+    {!embed && <ConfirmBar label="✓ 归一完成，继续" onConfirm={onConfirm} done={done}/>}
+  </div>);
 };
 
-
-// ===== 步骤4: 指标选择 =====
-const Step4Metrics = ({data,onChange}) => {
-  const [metrics,setMetrics] = useState([
-    {name:'GMV规模',cat:'基础',selected:true,icon:'dollar-sign'},
-    {name:'市场增速',cat:'基础',selected:true,icon:'trending-up'},
-    {name:'京东增速',cat:'基础',selected:true,icon:'bar-chart'},
-    {name:'增速差(京东-大盘)',cat:'基础',selected:true,icon:'git-compare'},
-    {name:'市占率',cat:'基础',selected:true,icon:'pie-chart'},
-    {name:'SKU数量',cat:'基础',selected:false,icon:'package'},
-    {name:'上品可行性',cat:'仿真前置',selected:false,icon:'plus-circle'},
-    {name:'运营杠杆系数',cat:'仿真前置',selected:false,icon:'sliders'},
-    {name:'历史活动效果',cat:'仿真前置',selected:false,icon:'clock'},
-  ]);
-  const toggle = (i) => {
-    const next = [...metrics];
-    next[i].selected = !next[i].selected;
-    setMetrics(next);
-    onChange({metrics:next.filter(m=>m.selected)});
-  };
-  
-  return (
-    <div className="space-y-5">
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
-          <span className="w-5 h-5 bg-amber-500 text-white rounded flex items-center justify-center text-xs">4</span>
-          选择分析指标
-        </h3>
-        <p className="text-xs text-slate-500 mb-4">6项基础指标 + 3项仿真前置指标</p>
-        <div className="grid grid-cols-3 gap-2">
-          {metrics.map((m,i)=>(
-            <button key={m.name} onClick={()=>toggle(i)} className={`p-3 rounded-lg border text-left transition-all ${m.selected?'bg-amber-50 border-amber-300 shadow-sm':'bg-white border-slate-200 hover:border-slate-300'}`}>
-              <div className="flex items-center gap-2 mb-1">
-                <div className={`w-4 h-4 rounded flex items-center justify-center ${m.selected?'bg-amber-500':'bg-slate-200'}`}>
-                  {m.selected && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>}
-                </div>
-                <span className={`text-xs font-bold ${m.selected?'text-slate-800':'text-slate-500'}`}>{m.name}</span>
-              </div>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded ${m.cat==='基础'?'bg-slate-100 text-slate-500':'bg-purple-50 text-purple-600'}`}>{m.cat}</span>
+const S4 = ({st,set,done,onConfirm,embed}) => {
+  const toggle=i=>{const m=st.s4metrics.map((x,j)=>j===i?{...x,on:!x.on}:x);set({s4metrics:m});};
+  const cats=[...new Set(st.s4metrics.map(m=>m.cat))];
+  const onCount=st.s4metrics.filter(m=>m.on).length;
+  return (<div>
+    <div className="text-[12px] text-slate-500 mb-2.5">指标服务 · 已选 <b className="text-brand-600">{onCount}</b> 项，除推荐外可按需勾选更多</div>
+    {cats.map(cat=>(
+      <div key={cat} className="mb-2.5">
+        <div className="text-[10px] font-semibold text-ink2 mb-1">{cat}指标</div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {st.s4metrics.map((m,i)=> m.cat===cat && (
+            <button key={m.name} disabled={done} onClick={()=>toggle(i)} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-left ${m.on?'bg-brand-50/60 border-brand-200':'bg-white border-slate-200'}`}>
+              <div className={`w-3.5 h-3.5 rounded flex items-center justify-center shrink-0 ${m.on?'bg-brand-500':'bg-slate-200'}`}>{m.on&&<svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7"/></svg>}</div>
+              <span className={`text-[11.5px] font-semibold ${m.on?'text-slate-800':'text-slate-400'}`}>{m.name}</span>
             </button>
           ))}
         </div>
       </div>
-      
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-        <span className="text-lg">🤖</span>
-        <div>
-          <div className="text-xs font-bold text-amber-800">Agent 策略捕获</div>
-          <div className="text-xs text-amber-700 mt-1">指标偏好已保存为 <span className="font-bold bg-amber-100 px-1 rounded">metric_preference</span>，您关注增速差+市占率，将优先计算竞争力指标</div>
-        </div>
-      </div>
-    </div>
-  );
+    ))}
+    {!embed && <ConfirmBar label="✓ 用这些指标衡量" onConfirm={onConfirm} done={done}/>}
+  </div>);
 };
 
+const S5 = ({st,set,done,onConfirm,embed}) => {
+  return (<div>
+    <div className="text-[12px] text-slate-500 mb-2">按选定维度交叉初绘网格后，系统自动预检网格质量：</div>
+    <div className="grid grid-cols-3 gap-1.5 mb-1 text-center">
+      {[['空格率','12%'],['最大格','38%'],['碎片格','3']].map(([l,v])=>(
+        <div key={l} className="rounded-lg border border-[#ececee] bg-[#fafafa] py-2.5"><div className="text-[9px] text-ink2">{l}</div><div className="text-[15px] font-bold text-ink">{v}</div><div className="text-[9px] text-pos font-semibold">预检</div></div>
+      ))}
+    </div>
+    {!embed && <ConfirmBar label="✓ 网格无误，去诊断" onConfirm={onConfirm} done={done}/>}
+  </div>);
+};
 
-// ===== 步骤5: 网格绘制与调优 =====
-const Step5Grid = ({data,onChange}) => {
-  const [rowDim,setRowDim] = useState('价格带');
-  const [colDim,setColDim] = useState('品牌类型');
-  const [showPrecheck,setShowPrecheck] = useState(true);
-  const precheck = {emptyRate:12,maxCellShare:38,fragmentCount:1};
-  const passEmpty = precheck.emptyRate < 30;
-  const passMax = precheck.maxCellShare < 50;
-  const passFrag = precheck.fragmentCount < 2;
-  
-  const gridData = useMemo(()=>{
-    const rows = rowDim==='价格带'?PRICE_BANDS:BRAND_TYPES;
-    const cols = colDim==='价格带'?PRICE_BANDS:colDim==='品牌类型'?BRAND_TYPES:FUNCTIONS;
-    return rows.map(r=>cols.map(c=>{
-      const seed = (r+c).split('').reduce((a,b)=>a+b.charCodeAt(0),0);
-      const scale = Math.round((seed%500+100)*10)/10;
-      const mkt = Math.round((seed%30-5)*10)/10;
-      const jd = Math.round((seed%25-3)*10)/10;
-      const diff = Math.round((jd-mkt)*10)/10;
-      const share = Math.round((seed%40+10)*10)/10;
-      return {scale,mkt,jd,diff,share};
-    }));
-  },[rowDim,colDim]);
-  
-  const getCellColor = (diff) => {
-    if(diff>5) return 'bg-emerald-100 border-emerald-300';
-    if(diff>0) return 'bg-emerald-50 border-emerald-200';
-    if(diff>-5) return 'bg-rose-50 border-rose-200';
-    return 'bg-rose-100 border-rose-300';
+const RULE_METRICS=['销售额占比','京东市占','增速','集中度','动销率','搜索-供给缺口','客单价'];
+const RULE_OPS=['>','≥','<','≤','='];
+const RULE_COLORS=['#7c4dff','#9aabfd','#1a9d5f','#e0322a','#f5b800','#8a5cf5','#00b4d8','#ff6f61'];
+const S6 = ({st,set,done,onConfirm,embed}) => {
+  const rules=st.s6rules;
+  const updRule=(ri,key,val)=>set({s6rules:rules.map((r,i)=>i!==ri?r:{...r,[key]:val})});
+  const upd=(ri,ci,key,val)=>set({s6rules:rules.map((r,i)=>i!==ri?r:{...r,conds:r.conds.map((c,j)=>j!==ci?c:{...c,[key]:val})})});
+  const addCond=ri=>set({s6rules:rules.map((r,i)=>i!==ri?r:{...r,conds:[...r.conds,{m:'增速',op:'>',v:'类目平均'}]})});
+  const delCond=(ri,ci)=>set({s6rules:rules.map((r,i)=>i!==ri?r:{...r,conds:r.conds.filter((_,j)=>j!==ci)})});
+  const addRule=()=>set({s6rules:[...rules,{label:'新规则',color:RULE_COLORS[rules.length%RULE_COLORS.length],conds:[{m:'增速',op:'>',v:'类目平均'}]}]});
+  const delRule=ri=>set({s6rules:rules.filter((_,i)=>i!==ri)});
+  return (<div>
+    <div className="text-[12px] text-slate-500 mb-2.5">自定义诊断规则：定义规则名称、颜色和条件，满足全部条件的格子会打上对应标签。</div>
+    {rules.map((r,ri)=>(
+      <div key={ri} className="mb-2.5 rounded-lg border border-[#ececee] p-2.5">
+        <div className="flex items-center gap-2 mb-2">
+          <label className="relative cursor-pointer" title="点击更换颜色">
+            <input type="color" disabled={done} value={r.color} onChange={e=>updRule(ri,'color',e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-5 h-5"/>
+            <span className="w-5 h-5 rounded-full block border-2 border-white shadow-sm" style={{background:r.color}}/>
+          </label>
+          <input disabled={done} value={r.label} onChange={e=>updRule(ri,'label',e.target.value)} className="flex-1 bg-white border border-[#e0e0e0] rounded-md px-2 py-1 text-[12px] font-semibold outline-none focus:border-brand-400 disabled:bg-slate-50"/>
+          <span className="text-[10px] text-ink2 shrink-0">满足以下全部条件</span>
+          {!done && rules.length>1 && <button onClick={()=>delRule(ri)} className="text-ink2 hover:text-neg text-[14px] px-1 shrink-0" title="删除此规则">×</button>}
+        </div>
+        <div className="space-y-1.5">
+          {r.conds.map((c,ci)=>(
+            <div key={ci} className="flex items-center gap-1.5">
+              <span className="text-[10px] text-ink2 w-4 shrink-0">{ci===0?'当':'且'}</span>
+              <select disabled={done} value={c.m} onChange={e=>upd(ri,ci,'m',e.target.value)} className="flex-1 bg-white border border-[#e0e0e0] rounded-md px-2 py-1 text-[11.5px] outline-none disabled:bg-slate-50">{RULE_METRICS.map(m=><option key={m}>{m}</option>)}</select>
+              <select disabled={done} value={c.op} onChange={e=>upd(ri,ci,'op',e.target.value)} className="w-12 bg-white border border-[#e0e0e0] rounded-md px-1 py-1 text-[11.5px] text-center outline-none disabled:bg-slate-50">{RULE_OPS.map(o=><option key={o}>{o}</option>)}</select>
+              <input disabled={done} value={c.v} onChange={e=>upd(ri,ci,'v',e.target.value)} className="w-24 bg-white border border-[#e0e0e0] rounded-md px-2 py-1 text-[11.5px] outline-none disabled:bg-slate-50"/>
+              {!done && r.conds.length>1 && <button onClick={()=>delCond(ri,ci)} className="text-ink2 hover:text-neg text-[14px] px-0.5">×</button>}
+            </div>
+          ))}
+        </div>
+        {!done && <button onClick={()=>addCond(ri)} className="mt-1.5 text-[11px] font-semibold text-brand-600 hover:underline">+ 添加条件</button>}
+      </div>
+    ))}
+    {!done && <button onClick={addRule} className="w-full py-2 rounded-lg border border-dashed border-brand-300 text-brand-600 text-[12px] font-semibold hover:bg-brand-50 transition-all">+ 添加诊断规则</button>}
+    <div className="text-[11px] text-ink2 bg-[#fafafa] border border-[#f0f0f0] rounded-lg px-2.5 py-1.5 mt-2">示例：销售额占比 &gt; 类目15% 且 京东市占 &lt; 类目平均 且 增速 &gt; 类目平均 → 自定义标签名。</div>
+    {!embed && <ConfirmBar label="✓ 用这些规则诊断" onConfirm={onConfirm} done={done}/>}
+  </div>);
+};
+
+const S7 = ({st,set,done,onConfirm,embed}) => (
+  <div>
+    <div className="flex gap-1.5 mb-3">
+      {[['product','📦 上品仿真'],['ops','⚡ 运营仿真']].map(([k,l])=>(
+        <button key={k} disabled={done} onClick={()=>set({s7type:k})} className={`flex-1 py-2 rounded-lg border text-[12px] font-bold ${st.s7type===k?'bg-brand-50 border-brand-300 text-brand-700':'bg-white border-slate-200 text-slate-500'}`}>{l}</button>
+      ))}
+    </div>
+    {st.s7type==='product' ? (
+      <div className="space-y-3">
+        <div><div className="flex justify-between text-[11.5px] mb-1"><span className="text-slate-500">前台售价</span><span className="font-bold text-brand-600">¥{st.s7sell}</span></div><input type="range" min={800} max={5000} step={50} value={st.s7sell} disabled={done} onChange={e=>set({s7sell:+e.target.value})} className="w-full"/></div>
+        <div><div className="flex justify-between text-[11.5px] mb-1"><span className="text-slate-500">采购底价</span><span className="font-bold text-emerald-600">¥{st.s7buy}</span></div><input type="range" min={500} max={3000} step={50} value={st.s7buy} disabled={done} onChange={e=>set({s7buy:+e.target.value})} className="w-full"/></div>
+      </div>
+    ) : (
+      <div className="space-y-1.5">
+        {[['exposure','👁️ 加曝光','搜索权重 +20%'],['price','📉 降价','促销价 -8~15%'],['activity','🎯 上活动','秒杀/百亿补贴'],['combo','🔗 组合推','搭配耗材配件']].map(([k,l,d])=>(
+          <button key={k} disabled={done} onClick={()=>set({s7op:k})} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border text-left ${st.s7op===k?'bg-brand-50 border-brand-300':'bg-white border-slate-200'}`}><span className="text-[13px]">{l.split(' ')[0]}</span><span className={`text-[12px] font-bold ${st.s7op===k?'text-brand-700':'text-slate-500'}`}>{l.split(' ')[1]}</span><span className="ml-auto text-[10px] text-slate-400">{d}</span></button>
+        ))}
+      </div>
+    )}
+    {!embed && <ConfirmBar label="✓ 采纳该方案" onConfirm={onConfirm} done={done}/>}
+  </div>
+);
+
+const CONTROLS=[S1,S2,S4,S5,S6];
+
+/* dialogue text per step */
+const AGENT_INTRO=[
+  <span>我先圈定分析货盘。建议按 GMV 取 <b>Top 15</b> 主力 SKU，去掉长尾。你也可以改成关键词或条件筛选 👇</span>,
+  <span>融合你的决策习惯、站外趋势和 ERP 策略，我推荐用 <b className="text-brand-600">价格带 × 品牌类型</b> 拆解。要不要加减维度？</span>,
+  <span>选衡量指标。你一向看竞争力，我默认勾了 <b>增速</b> 和 <b>市占率</b>。我们还提供更多指标服务（转化、客单、复购、供给缺口等），可按需勾选。确认后我就开始画网格。</span>,
+  <span>网格已画好 ✅ 接下来可以调优：合并碎片格、处理空白格（采纳 / 忽略由你定），让网格更聚焦、更好用。</span>,
+  <span>用已有指标<b>配置诊断规则</b>：满足全部条件的格子会自动打上标签（蓝海 / 红海）。可增删条件、改阈值。</span>,
+];
+const CAPTURE=[
+  {code:'scope_template',t:<span>你偏好 TopN 圈选，已存为货盘模板，下次同类品类自动带上。</span>},
+  {code:'dimension_preference',t:<span>记录了你的维度组合偏好（价格带×品牌类型），同类品类默认推荐。</span>},
+  {code:'metric_preference',t:<span>你关注增速 + 市占率，后续优先计算竞争力指标。</span>},
+  {code:'merge_habit + focus_override',t:<span>网格的合并/空白处理习惯已记录，下次自动套用。</span>},
+  {code:'diagnosis_rule',t:<span>你配置的诊断规则已固化，下次同类品类自动应用。</span>},
+];
+
+/* =================== VIZ (right panel) — results only =================== */
+const DRow=({l,sub,a,g,sh,extra})=>(
+  <div className="flex items-center gap-2 py-2 border-b border-[#f2f2f2] last:border-0">
+    <div className="flex-1 min-w-0"><div className="text-[12.5px] font-bold text-slate-700 truncate">{l}</div><div className="text-[10px] text-slate-400">{sub}{extra?' · '+extra:''}</div></div>
+    {a&&<span className="text-[11px] text-slate-500 shrink-0">{a}</span>}
+    <div className="w-24 shrink-0"><div className="flex justify-between text-[10px] mb-0.5"><span className="text-slate-400">GMV</span><span className="font-bold text-slate-700">¥{g}万</span></div><div className="h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden"><div className="h-full bg-brand-500 rounded-full" style={{width:sh+'%'}}/></div></div>
+    <span className="text-[11px] font-bold text-brand-600 w-9 text-right shrink-0">{sh}%</span>
+  </div>
+);
+const downloadCSV=(headers,rows,filename)=>{
+  const esc=v=>`"${String(v).replace(/"/g,'""')}"`;
+  const csv=[headers.map(esc).join(','),...rows.map(r=>r.map(esc).join(','))].join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+};
+const DetailCard = ({rowParts,colParts,rvLabel,cvLabel,catLevel,onClose,st,set}) => {
+  const [tab,setTab]=useState('sku');
+  const [q,setQ]=useState('');
+  const [chan,setChan]=useState('全部');
+  const [ci,setCi]=useState(false);
+  const [cb,setCb]=useState(false);
+  const [editSku,setEditSku]=useState(null);
+  const [attrSku,setAttrSku]=useState(null);
+  const [dlErr,setDlErr]=useState(false);
+  const genCi=()=>{setCb(true);setTimeout(()=>{setCb(false);setCi(true);},600);};
+  const fix=st.attrFix||{};
+  const adjDims=[...rowParts,...colParts].map(p=>p.dim).filter((d,i,a)=>DATA_DIMS.includes(d)&&a.indexOf(d)===i);
+  const moveSku=(name,dim,val)=>{ set({attrFix:{...fix,[name]:{...(fix[name]||{}),[dim]:val}}}); setEditSku(null); };
+  const all=cellSkus(rowParts,colParts,fix).map(s=>({...s,...skuStat(s)}));
+  const key=`${rvLabel} × ${cvLabel}`;
+  const focused=(st.focusCells||[]).includes(key);
+  const toggleFocus=()=>set({focusCells:focused?st.focusCells.filter(k=>k!==key):[...(st.focusCells||[]),key]});
+  const CH_COLORS=['#7c4dff','#9aabfd','#1a9d5f','#e0322a'];
+  const chanAgg=CHANNELS.map(ch=>({ch,gmv:+all.filter(s=>s.channel===ch).reduce((a,b)=>a+b.gmv,0).toFixed(1)})).filter(x=>x.gmv>0);
+  const chanTot=chanAgg.reduce((a,b)=>a+b.gmv,0)||1;
+  const cg=Math.round(key.split('').reduce((a,c)=>a+c.charCodeAt(0),0)%60-15);
+  const trend=[...Array(6)].map((_,i)=>{const sd=(rvLabel+cvLabel+'p'+i).split('').reduce((a,c)=>a+c.charCodeAt(0),0);return sd%46-14;});
+  const tmin=Math.min(...trend), tmxx=Math.max(...trend), trng=(tmxx-tmin)||1;
+  const CW=300,CH=70,CP=9;
+  const tpts=trend.map((v,i)=>[CP+i*((CW-2*CP)/(trend.length-1)), CP+(1-(v-tmin)/trng)*(CH-2*CP)]);
+  const tpath=tpts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const tzero=CP+(1-(0-tmin)/trng)*(CH-2*CP);
+  const tarea=`M${tpts[0][0].toFixed(1)} ${(CH-CP).toFixed(1)} `+tpts.map(p=>'L'+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')+` L${tpts[tpts.length-1][0].toFixed(1)} ${(CH-CP).toFixed(1)} Z`;
+  const PERIODS=['1月','2月','3月','4月','5月','本月'];
+  const skus=all.filter(s=>(chan==='全部'||s.channel===chan)&&(!q||s.name.includes(q)||s.brand.includes(q))).sort((a,b)=>b.gmv-a.gmv);
+  const totalG=+skus.reduce((a,b)=>a+b.gmv,0).toFixed(1);
+  const share=g=>totalG?Math.round(g/totalG*100):0;
+  const brands=Object.values(skus.reduce((m,s)=>{m[s.brand]=m[s.brand]||{brand:s.brand,gmv:0,n:0};m[s.brand].gmv+=s.gmv;m[s.brand].n++;return m;},{})).map(b=>({...b,gmv:+b.gmv.toFixed(1)})).sort((a,b)=>b.gmv-a.gmv);
+  const shops=skus.map(s=>({shop:`${s.brand}${s.channel}旗舰店`,channel:s.channel,sku:s.name,gmv:s.gmv})).sort((a,b)=>b.gmv-a.gmv);
+  const tabs=[['sku','商品',skus.length],['shop','店铺',shops.length],['brand','品牌',brands.length]];
+  const download=()=>{
+    let headers,rows,fn;
+    if(tab==='sku'){headers=['商品','品牌','品类档位','渠道','售价','月销','GMV(万)','GMV占比%'];rows=skus.map(s=>[s.name,s.brand,s.type,s.channel,s.price,s.sales,s.gmv,share(s.gmv)]);fn='商品明细';}
+    else if(tab==='shop'){headers=['店铺','渠道','代表商品','GMV(万)','GMV占比%'];rows=shops.map(s=>[s.shop,s.channel,s.sku,s.gmv,share(s.gmv)]);fn='店铺明细';}
+    else{headers=['品牌','在架款数','GMV(万)','GMV占比%'];rows=brands.map(b=>[b.brand,b.n,b.gmv,share(b.gmv)]);fn='品牌明细';}
+    try{ downloadCSV(headers,rows,`${rvLabel}_${cvLabel}_${fn}.csv`); setDlErr(false); }catch(e){ setDlErr(true); }
   };
-  
-  return (
-    <div className="space-y-5">
-      {showPrecheck && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <span className="w-5 h-5 bg-blue-500 text-white rounded flex items-center justify-center text-xs">5</span>
-            自动预检
-          </h3>
-          <div className="grid grid-cols-3 gap-3">
-            <div className={`p-3 rounded-lg border ${passEmpty?'bg-emerald-50 border-emerald-200':'bg-rose-50 border-rose-200'}`}>
-              <div className="text-[10px] text-slate-500 mb-1">空格率</div>
-              <div className="text-lg font-black">{precheck.emptyRate}%</div>
-              <div className={`text-[10px] font-bold ${passEmpty?'text-emerald-600':'text-rose-600'}`}>{passEmpty?'✓ <30%':'✗ ≥30%'}</div>
-            </div>
-            <div className={`p-3 rounded-lg border ${passMax?'bg-emerald-50 border-emerald-200':'bg-rose-50 border-rose-200'}`}>
-              <div className="text-[10px] text-slate-500 mb-1">最大格占比</div>
-              <div className="text-lg font-black">{precheck.maxCellShare}%</div>
-              <div className={`text-[10px] font-bold ${passMax?'text-emerald-600':'text-rose-600'}`}>{passMax?'✓ <50%':'✗ ≥50%'}</div>
-            </div>
-            <div className={`p-3 rounded-lg border ${passFrag?'bg-emerald-50 border-emerald-200':'bg-rose-50 border-rose-200'}`}>
-              <div className="text-[10px] text-slate-500 mb-1">碎片格(&lt;2品)</div>
-              <div className="text-lg font-black">{precheck.fragmentCount}</div>
-              <div className={`text-[10px] font-bold ${passFrag?'text-emerald-600':'text-rose-600'}`}>{passFrag?'✓ <2个':'✗ ≥2个'}</div>
-            </div>
-          </div>
-          <button onClick={()=>setShowPrecheck(false)} className="mt-3 text-xs font-bold text-blue-600 hover:underline">预检通过，展开网格 →</button>
-        </div>
-      )}
-      
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex items-center bg-white border border-slate-200 rounded-md px-3 py-1.5 shadow-sm">
-            <span className="text-slate-500 text-xs mr-2">行</span>
-            <select value={rowDim} onChange={e=>setRowDim(e.target.value)} className="bg-transparent font-bold text-slate-800 outline-none text-xs">
-              {['价格带','品牌类型','功能类型'].map(d=><option key={d} value={d} disabled={d===colDim}>{d}</option>)}
-            </select>
-          </div>
-          <span className="text-slate-300 font-bold">×</span>
-          <div className="flex items-center bg-white border border-slate-200 rounded-md px-3 py-1.5 shadow-sm">
-            <span className="text-slate-500 text-xs mr-2">列</span>
-            <select value={colDim} onChange={e=>setColDim(e.target.value)} className="bg-transparent font-bold text-slate-800 outline-none text-xs">
-              {['价格带','品牌类型','功能类型'].map(d=><option key={d} value={d} disabled={d===rowDim}>{d}</option>)}
-            </select>
-          </div>
-          <div className="ml-auto flex gap-1.5">
-            {['合并','拆分','调序','排除','重置'].map(op=><button key={op} className="text-[10px] px-2.5 py-1 rounded border border-slate-200 text-slate-600 font-bold hover:border-brand-300 hover:text-brand-600 transition-all">{op}</button>)}
-          </div>
-        </div>
-        
-        <div className="overflow-auto">
-          <table className="w-full border-separate border-spacing-1.5">
-            <thead>
-              <tr>
-                <th className="p-2 bg-slate-900 rounded-tl-lg text-purple-300 text-xs font-bold text-left">{rowDim} \\ {colDim}</th>
-                {(colDim==='价格带'?PRICE_BANDS:colDim==='品牌类型'?BRAND_TYPES:FUNCTIONS).map(c=><th key={c} className="p-2 bg-slate-50 text-xs font-bold text-slate-700 text-center">{c}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {(rowDim==='价格带'?PRICE_BANDS:BRAND_TYPES).map((r,ri)=>(
-                <tr key={r}>
-                  <td className="p-2 bg-slate-50 text-xs font-bold text-slate-700 text-center">{r}</td>
-                  {(colDim==='价格带'?PRICE_BANDS:colDim==='品牌类型'?BRAND_TYPES:FUNCTIONS).map((c,ci)=>(
-                    <td key={c} className="p-0">
-                      <div className={`p-2.5 rounded-lg border cursor-pointer hover:shadow-md transition-all ${getCellColor(gridData[ri]?.[ci]?.diff||0)}`}>
-                        <div className="flex justify-between items-baseline mb-1">
-                          <span className="font-black text-sm text-slate-800">¥{gridData[ri]?.[ci]?.scale||0}万</span>
-                          <span className="text-[10px] text-slate-500">市占 {gridData[ri]?.[ci]?.share||0}%</span>
-                        </div>
-                        <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded w-fit ${(gridData[ri]?.[ci]?.diff||0)<0?'bg-rose-100 text-rose-700':'bg-emerald-50 text-emerald-700'}`}>
-                          差 {(gridData[ri]?.[ci]?.diff||0)>0?'+':''}{gridData[ri]?.[ci]?.diff||0}pp
-                        </div>
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-        <span className="text-lg">🤖</span>
-        <div>
-          <div className="text-xs font-bold text-amber-800">Agent 策略捕获</div>
-          <div className="text-xs text-amber-700 mt-1">网格合并/拆分习惯已记录为 <span className="font-bold bg-amber-100 px-1 rounded">merge_habit</span>，您的调优焦点保存为 <span className="font-bold bg-amber-100 px-1 rounded">focus_override</span></div>
-        </div>
-      </div>
+  // attribute decomposition panel
+  const attrSkuData = attrSku ? all.find(s=>s.name===attrSku) : null;
+  const [attrEdits,setAttrEdits] = useState({});
+  const applyAttrEdit = (skuName,attrKey,newVal) => {
+    set({attrFix:{...fix,[skuName]:{...(fix[skuName]||{}),[attrKey]:newVal}}});
+    setAttrEdits(p=>({...p,[skuName+'.'+attrKey]:newVal}));
+  };
+  return (<div className="bg-white border border-[#ececec] rounded-xl shadow-[0_10px_28px_rgba(20,22,40,0.07)] mb-3 fade overflow-hidden">
+    <div className="px-4 py-2.5 bg-white border-b border-[#ececec] flex items-center gap-2">
+      <span className="text-[13px] font-bold text-ink">{rvLabel} × {cvLabel}</span>
+      <span className="text-[11px] text-ink2">明细钻取</span>
+      <span className="ml-auto text-[11px] text-ink2">GMV ¥{totalG}万 · {skus.length}品</span>
+      <button onClick={toggleFocus} className={`px-2 h-6 rounded text-[11px] font-semibold border transition-all ${focused?'bg-brand-50 border-brand-200 text-brand-600':'bg-white border-[#e0e0e0] text-ink2 hover:border-brand-300 hover:text-brand-600'}`}>{focused?'★ 已标注':'☆ 标注重点'}</button>
+      <button onClick={onClose} className="w-6 h-6 rounded border border-[#e0e0e0] text-ink2 hover:bg-[#f5f5f5] text-[13px]">✕</button>
     </div>
-  );
-};
-
-
-// ===== 步骤6: 网格诊断 =====
-const Step6Diagnosis = ({data,onChange}) => {
-  const annotations = [
-    {cell:'高端×头部',type:'红海',color:'bg-rose-500',icon:'🔥',desc:'竞争白热化，头部品牌价格战，利润被压缩'},
-    {cell:'高端×高潜',type:'现金牛',color:'bg-amber-500',icon:'🐄',desc:'高利润主力区间，应追加投放维护'},
-    {cell:'中端×高潜',type:'蓝海',color:'bg-blue-500',icon:'🌊',desc:'市占下跌+全网需求激增=供给盲区，优先布局'},
-    {cell:'普及×白牌',type:'机会',color:'bg-emerald-500',icon:'💎',desc:'1688工厂GGMV爆发式增长，直接切入源头定制'},
-    {cell:'中端×白牌',type:'失守',color:'bg-red-800',icon:'⚠️',desc:'白牌渗透严重，需紧急防御策略'},
-  ];
-  
-  const benchmarks = [
-    {metric:'天猫统治区',value:'高端×头部',detail:'科沃斯+追觅+石头占天猫72%份额'},
-    {metric:'抖音新势力',value:'中端×高潜',detail:'云鲸+添可抖音GMV增速+85%'},
-    {metric:'白牌价格线',value:'普及×白牌',detail:'1688厂货均价跌破¥899'},
-    {metric:'技术溢价区',value:'旗舰×头部',detail:'机械臂技术溢价¥1200+，利润率38%'},
-  ];
-  
-  return (
-    <div className="space-y-5">
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-          <span className="w-5 h-5 bg-indigo-500 text-white rounded flex items-center justify-center text-xs">6</span>
-          诊断标注
-        </h3>
-        <div className="space-y-2">
-          {annotations.map(a=>(
-            <div key={a.cell} className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
-              <span className="text-base mt-0.5">{a.icon}</span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-xs font-bold text-slate-800">{a.cell}</span>
-                  <span className={`text-[10px] font-bold text-white px-2 py-0.5 rounded ${a.color}`}>{a.type}</span>
-                </div>
-                <div className="text-[11px] text-slate-500">{a.desc}</div>
+    {attrSkuData ? (
+      <div className="px-3 py-3 border-b border-[#f0f0f0]">
+        <div className="flex items-center gap-2 mb-2.5">
+          <button onClick={()=>{setAttrSku(null);setAttrEdits({});}} className="text-[11px] font-semibold text-brand-600 hover:underline">← 返回商品列表</button>
+          <span className="text-[12px] font-bold text-ink">{attrSkuData.name}</span>
+          <span className="text-[10px] text-ink2">{attrSkuData.brand} · ¥{attrSkuData.price}</span>
+        </div>
+        <div className="text-[11px] text-ink2 mb-2">以下为该商品的属性拆分，低置信度属性已标注，可直接修改任意属性值：</div>
+        <div className="space-y-1.5">
+          {Object.entries(attrSkuData.attrs||{}).map(([k,v])=>{
+            const lc=(attrSkuData.lowConfAttrs||{})[k];
+            const isAdjDim = adjDims.includes(k);
+            const curVal = attrEdits[attrSkuData.name+'.'+k] || (fix[attrSkuData.name]&&fix[attrSkuData.name][k]) || v;
+            return (
+              <div key={k} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border ${lc?'border-amber-200 bg-amber-50/50':'border-[#ececee] bg-[#fafafa]'}`}>
+                <span className="text-[11px] text-ink2 w-16 shrink-0 font-semibold">{k}</span>
+                {isAdjDim ? (
+                  <select value={curVal} onChange={e=>applyAttrEdit(attrSkuData.name,k,e.target.value)} className="flex-1 bg-white border border-[#e0e0e0] rounded px-2 py-0.5 text-[11px] outline-none font-semibold text-brand-700">{dimVals(k).map(vv=><option key={vv}>{vv}</option>)}</select>
+                ) : (
+                  <input value={curVal} onChange={e=>applyAttrEdit(attrSkuData.name,k,e.target.value)} className="flex-1 bg-white border border-[#e0e0e0] rounded px-2 py-0.5 text-[11px] outline-none font-semibold text-ink focus:border-brand-400"/>
+                )}
+                {lc && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${lc.conf<50?'bg-rose-100 text-rose-600':'bg-amber-100 text-amber-700'}`}>置信度 {lc.conf}%</span>}
+                {lc && <span className="text-[9px] text-amber-600 shrink-0">⚠ 待确认</span>}
               </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+        {Object.keys(attrSkuData.lowConfAttrs||{}).length > 0 && (
+          <div className="mt-2 p-2 rounded-lg bg-amber-50 border border-amber-200 text-[10.5px] text-amber-700 leading-relaxed">
+            ⚠ {Object.keys(attrSkuData.lowConfAttrs).length} 个属性置信度偏低（AI 提取可能不准确），建议人工确认或修正。低置信度属性在网格中可能归格有误。
+          </div>
+        )}
+      </div>
+    ) : (
+    <>
+    <div className="px-3 py-2 border-b border-[#f0f0f0]">
+      <div className="text-[10px] text-ink2 mb-1">渠道 / 竞对占比（本格 GMV）</div>
+      <div className="flex h-2.5 rounded-full overflow-hidden bg-[#f4f4f6]">
+        {chanAgg.map((c,i)=><div key={c.ch} style={{width:(c.gmv/chanTot*100)+'%',background:CH_COLORS[i%4]}}/>)}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">{chanAgg.map((c,i)=><span key={c.ch} className="text-[10px] text-ink2 flex items-center gap-1"><i className="w-2 h-2 rounded-full inline-block" style={{background:CH_COLORS[i%4]}}/>{c.ch} {Math.round(c.gmv/chanTot*100)}%</span>)}</div>
+    </div>
+    <div className="px-3 py-3 border-b border-[#f0f0f0]">
+      <div className="flex items-center justify-between mb-2"><span className="text-[11px] font-semibold text-ink">近 6 期增速趋势</span><span className={`text-[11px] font-bold ${cg<0?'text-neg':'text-pos'}`}>本期 {cg>0?'+':''}{cg}%</span></div>
+      <svg viewBox={`0 0 ${CW} ${CH}`} preserveAspectRatio="none" className="w-full" style={{height:'74px'}}>
+        <defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7c4dff" stopOpacity="0.16"/><stop offset="100%" stopColor="#7c4dff" stopOpacity="0"/></linearGradient></defs>
+        {tmin<0 && tmxx>0 && <line x1={CP} y1={tzero} x2={CW-CP} y2={tzero} stroke="#e0e0e0" strokeDasharray="4 4"/>}
+        <path d={tarea} fill="url(#tg)"/>
+        <path d={tpath} fill="none" stroke="#7c4dff" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+        {tpts.map((p,i)=><circle key={i} cx={p[0]} cy={p[1]} r={i===5?3.6:2.4} fill={i===5?'#7c4dff':'#fff'} stroke="#7c4dff" strokeWidth="1.6" vectorEffect="non-scaling-stroke"/>)}
+      </svg>
+      <div className="flex justify-between mt-1 px-0.5">{PERIODS.map((p,i)=><span key={i} className="text-[8px] text-ink2">{p}</span>)}</div>
+    </div>
+    <div className="px-3 py-2.5 border-b border-[#f0f0f0]">
+      {ci ? (
+        <div className="rounded-lg bg-brand-50 border border-brand-100 p-2.5">
+          <div className="text-[11px] font-semibold text-brand-600 mb-1">🔮 AI 对本格的洞察</div>
+          <div className="text-[11.5px] text-[#333] leading-relaxed">{rvLabel} × {cvLabel}：近 6 期增速{cg<0?`走弱至 ${cg}%，供给收缩、竞争趋稳`:`维持 +${cg}%，需求仍在扩张`}；渠道上 {chanAgg[0]?chanAgg[0].ch:'京东自营'} 占比最高（{chanAgg[0]?Math.round(chanAgg[0].gmv/chanTot*100):0}%）。{cg>15?'属高潜机会格，建议加大引商与曝光。':cg<0?'增长乏力，建议观望或做防御。':'表现平稳，可作现金牛维护。'}</div>
+        </div>
+      ) : (
+        <button onClick={genCi} disabled={cb} className="w-full py-1.5 rounded-lg border border-brand-200 bg-brand-50 text-brand-600 text-[12px] font-semibold hover:bg-brand-100 transition-all disabled:opacity-60">{cb?'生成中…':'🔮 生成本格洞察结论'}</button>
+      )}
+    </div>
+    </>
+    )}
+    {!attrSkuData && <div className="flex border-b border-[#f0f0f0]">
+      {tabs.map(([k,l,n])=>(<button key={k} onClick={()=>setTab(k)} className={`flex-1 py-2 text-[12px] font-semibold ${tab===k?'text-brand-600 border-b-2 border-brand-500 bg-brand-50/40':'text-ink2 hover:text-ink'}`}>{l} <span className="text-[10px] opacity-70">{n}</span></button>))}
+    </div>}
+    {!attrSkuData && <div className="flex items-center gap-2 px-3 py-2 border-b border-[#f0f0f0] bg-[#fafafa]">
+      <div className="flex items-center gap-1.5 flex-1 bg-white border border-[#e0e0e0] rounded-lg px-2.5 py-1">
+        <svg className="w-3.5 h-3.5 text-ink2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="按名称 / 品牌筛选" className="flex-1 bg-transparent text-[12px] outline-none placeholder:text-[#b0b0b5]"/>
+      </div>
+      <select value={chan} onChange={e=>setChan(e.target.value)} className="bg-white border border-[#e0e0e0] rounded-lg px-2 py-1.5 text-[12px] font-semibold outline-none">
+        <option value="全部">全部渠道</option>{CHANNELS.map(c=><option key={c} value={c}>{c}</option>)}
+      </select>
+      <button onClick={download} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#e0e0e0] text-[12px] font-semibold text-ink2 hover:border-brand-400 hover:text-brand-600 transition-all"><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>下载</button>
+    </div>}
+    {dlErr && <div className="flex items-center gap-2 px-3 py-1.5 bg-negbg border-b border-[#f6d3d3] text-[11px] text-neg">导出失败，请重试 <button onClick={download} className="font-semibold underline">重试</button></div>}
+    {!attrSkuData && <div className="max-h-72 overflow-y-auto cs px-3">
+      {skus.length===0 ? <div className="text-center text-[12px] text-ink2 py-10">无匹配的明细</div> :
+       tab==='sku' ? skus.map(s=>{const editing=editSku===s.name;const dims=adjDims;return(
+         <div key={s.name} className="py-2 border-b border-[#f2f2f2] last:border-0">
+           <div className="flex items-center gap-2">
+             <div className="flex-1 min-w-0"><div className="text-[12.5px] font-bold text-slate-700 truncate">{s.name}</div><div className="text-[10px] text-slate-400">{s.brand} · {s.type} · {s.channel} · {s.sales}台/月</div></div>
+             <span className="text-[11px] text-slate-500 shrink-0">¥{s.price}</span>
+             <div className="w-16 shrink-0"><div className="flex justify-between text-[10px] mb-0.5"><span className="text-slate-400">GMV</span><span className="font-bold text-slate-700">¥{s.gmv}万</span></div><div className="h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden"><div className="h-full bg-brand-500 rounded-full" style={{width:share(s.gmv)+'%'}}/></div></div>
+             <button onClick={()=>setAttrSku(s.name)} className="shrink-0 text-[10px] px-2 py-1 rounded-full border border-brand-200 bg-brand-50 text-brand-600 font-semibold hover:bg-brand-100 transition-all">属性拆分</button>
+             <button onClick={()=>setEditSku(editing?null:s.name)} className={`shrink-0 text-[10px] px-2 py-1 rounded-full border font-semibold transition-all ${editing?'bg-brand-50 border-brand-300 text-brand-600':'border-[#e0e0e0] text-ink2 hover:border-brand-400 hover:text-brand-600'}`}>调整格子</button>
+           </div>
+           {editing && <div className="mt-2 p-2.5 rounded-lg bg-[#fafafa] border border-[#ececee] flex items-center gap-2 flex-wrap">
+             <span className="text-[10px] font-semibold text-ink2">移动到：</span>
+             {dims.length? dims.map(d=>(
+               <label key={d} className="flex items-center gap-1 text-[11px]"><span className="text-ink2">{d}</span>
+                 <select value={skuVal(s,d,fix)} onChange={e=>moveSku(s.name,d,e.target.value)} className="bg-white border border-[#e0e0e0] rounded px-1.5 py-0.5 text-[11px] outline-none">{dimVals(d).map(v=><option key={v}>{v}</option>)}</select>
+               </label>
+             )) : <span className="text-[10px] text-ink2">品类维度不支持逐品调整</span>}
+           </div>}
+         </div>
+       );}) :
+       tab==='shop' ? shops.map((s,i)=><DRow key={i} l={s.shop} sub={s.channel+' · '+s.sku} g={s.gmv} sh={share(s.gmv)}/>) :
+       brands.map(b=><DRow key={b.brand} l={b.brand} sub={b.n+' 款在架'} g={b.gmv} sh={share(b.gmv)}/>)}
+    </div>}
+  </div>);
+};
+const Card=({title,pill,children})=>(
+  <div className="bg-white border border-[#e8e6f0] rounded-xl p-4 shadow-[0_10px_28px_rgba(20,22,40,0.06)] mb-3 fade">
+    <div className="text-[13px] font-bold mb-3 flex items-center gap-2">{title}{pill&&<span className="text-[10px] font-bold px-2 py-0.5 rounded bg-brand-50 text-brand-600">{pill}</span>}</div>
+    {children}
+  </div>
+);
+const DimSelect = ({label, selected, options, onAdd, onRemove}) => {
+  const [open,setOpen]=useState(false);
+  return (
+    <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+      <span className="text-[11.5px] text-ink2 shrink-0">{label}</span>
+      <div className="flex-1">
+        <div onClick={()=>setOpen(o=>!o)} className="min-h-[34px] flex items-center flex-wrap gap-1 border border-[#e0e0e0] rounded-lg px-2 py-1 bg-white cursor-pointer hover:border-brand-300">
+          {selected.length ? selected.map(d=>(
+            <span key={d} className="flex items-center gap-1 bg-[#f4f4f6] rounded px-1.5 py-0.5 text-[11.5px] font-semibold text-ink">{d}<span onClick={e=>{e.stopPropagation();onRemove(d);}} className="text-ink2 hover:text-neg cursor-pointer leading-none">×</span></span>
+          )) : <span className="text-[11.5px] text-[#b0b0b5]">选择维度</span>}
+          <svg className={`w-3.5 h-3.5 text-ink2 ml-auto shrink-0 transition-transform ${open?'rotate-180':''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M6 9l6 6 6-6"/></svg>
+        </div>
+        {open && <div className="mt-1 border border-[#e0e0e0] rounded-lg bg-white py-1 shadow-[0_2px_10px_rgba(0,0,0,0.06)]">
+          {options.length ? options.map(d=><div key={d} onClick={()=>{onAdd(d);setOpen(false);}} className="px-3 py-1.5 text-[12px] hover:bg-[#f4f6ff] cursor-pointer">＋ {d}</div>) : <div className="px-3 py-1.5 text-[11px] text-ink2">无更多可加维度（每轴最多 3）</div>}
+        </div>}
+      </div>
+    </div>
+  );
+};
+const useDimAxes = (st,set) => {
+  const rowSel=st.s5rows||[], colSel=st.s5cols||[];
+  const rec=(st.s2dims||[]).filter(d=>d.on).map(d=>d.name);   // 与属性推荐一致
+  const opts=rec.filter(d=>!rowSel.includes(d)&&!colSel.includes(d));
+  const addDim=(axis,d)=>{ let rs=rowSel.filter(x=>x!==d),cs=colSel.filter(x=>x!==d); if(axis==='row'&&rs.length<3)rs=[...rs,d]; if(axis==='col'&&cs.length<3)cs=[...cs,d]; set&&set({s5rows:rs,s5cols:cs}); };
+  const rmDim=(axis,d)=> set&&set(axis==='row'?{s5rows:rowSel.filter(x=>x!==d)}:{s5cols:colSel.filter(x=>x!==d)});
+  return {rowSel,colSel,opts,addDim,rmDim};
+};
+const DimAxes = ({st,set}) => {
+  const {rowSel,colSel,opts,addDim,rmDim}=useDimAxes(st,set);
+  return (
+    <div className="flex gap-3 flex-wrap">
+      <DimSelect label="行维度" selected={rowSel} options={opts} onAdd={d=>addDim('row',d)} onRemove={d=>rmDim('row',d)}/>
+      <DimSelect label="列维度" selected={colSel} options={opts} onAdd={d=>addDim('col',d)} onRemove={d=>rmDim('col',d)}/>
+    </div>
+  );
+};
+
+const VizStep = ({s,st,set,big,sel,onCell}) => {
+  const g=useMemo(()=>computeGrid(st.s5rows,st.s5cols,st.s5catLevel,st.dimValSel),[st.s5rows,st.s5cols,st.s5catLevel,st.dimValSel]);
+  const [metric,setMetric]=useState('growth');
+  if(s===0){
+    const sel=SKUS.slice(0,st.s1topn);
+    return (<div>
+      <Card title="货盘范围" pill={st.s1topn+' SKU'}>
+        <div className="flex gap-3 mb-3">
+          <div className="flex-1 bg-brand-50 rounded-lg p-3 text-center"><div className="text-2xl font-black text-brand-600">{st.s1topn}</div><div className="text-[10px] text-slate-500">命中 SKU</div></div>
+          <div className="flex-1 bg-emerald-50 rounded-lg p-3 text-center"><div className="text-2xl font-black text-emerald-600">83%</div><div className="text-[10px] text-slate-500">GMV 覆盖</div></div>
+          <div className="flex-1 bg-slate-50 rounded-lg p-3 text-center"><div className="text-2xl font-black text-slate-700">Top N</div><div className="text-[10px] text-slate-500">圈选方式</div></div>
+        </div>
+        <div className={`flex flex-wrap gap-1.5 ${big?'':'max-h-52'} overflow-y-auto cs`}>
+          {SKUS.map((k,i)=><span key={k.name} className={`text-[11px] px-2 py-1 rounded border ${i<st.s1topn?'bg-brand-50 border-brand-200 text-brand-700 font-bold':'bg-slate-50 border-slate-200 text-slate-400 line-through'}`}>{k.name} <span className="opacity-60">¥{k.price}</span></span>)}
+        </div>
+      </Card>
+    </div>);
+  }
+  if(s===1){
+    const on=st.s2dims.filter(d=>d.on);
+    return (<Card title="拆解维度组合" pill={on.length+' 维'}>
+      <div className="flex items-center gap-2 flex-wrap mb-4">
+        {on.map((d,i)=><React.Fragment key={d.name}><span className={`${big?'text-base px-4 py-2':'text-[12px] px-3 py-1.5'} bg-brand-50 text-brand-700 font-bold rounded-lg border border-brand-200`}>{d.name}</span>{i<on.length-1&&<span className="text-slate-300 font-bold">×</span>}</React.Fragment>)}
+      </div>
+      <div className="space-y-2">{on.map(d=>(
+        <div key={d.name} className="flex items-center gap-2 text-[11.5px]"><span className="w-16 text-slate-500">{d.name}</span><div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-brand-400 to-ai-500 rounded-full" style={{width:d.w+'%'}}/></div><span className="w-8 text-right text-slate-400">{d.w}%</span></div>
+      ))}</div>
+    </Card>);
+  }
+  if(s===2){
+    return (<Card title="属性归一映射" pill="4 属性">
+      <div className="space-y-2.5">{st.s3attrs.map(a=>(
+        <div key={a.name} className="border border-slate-100 rounded-lg p-2.5">
+          <div className="flex justify-between items-center mb-1.5"><span className="text-[12px] font-bold">{a.name}</span><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${a.conf>=80?'bg-emerald-50 text-emerald-700':a.conf>=50?'bg-amber-50 text-amber-700':'bg-rose-50 text-rose-700'}`}>{a.conf}%</span></div>
+          <div className="flex items-center gap-1.5 flex-wrap text-[11px]">{a.raw.map(v=><span key={v} className="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded">{v}</span>)}<span className="text-brand-400 font-bold">→</span>{a.norm.map(v=><span key={v} className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded font-bold">{v}</span>)}</div>
+        </div>
+      ))}</div>
+    </Card>);
+  }
+  if(s===3){
+    const on=st.s4metrics.filter(m=>m.on);
+    return (<Card title="分析指标" pill={on.length+' 项'}>
+      <div className="grid grid-cols-2 gap-2">{on.map(m=>(
+        <div key={m.name} className={`rounded-lg p-2.5 border ${m.cat==='基础'?'bg-slate-50 border-slate-100':'bg-ai-50 border-ai-100'}`}><div className="text-[12px] font-bold text-slate-700">{m.name}</div><div className="text-[10px] text-slate-400 mt-0.5">{m.cat}</div></div>
+      ))}</div>
+    </Card>);
+  }
+  if(s===4){
+    const metVal = d => metric==='growth'?d.growth:metric==='share'?d.share:d.scale;
+    const flat = g.cells.flat();
+    const vmin=Math.min(...flat.map(metVal)), vmax=Math.max(...flat.map(metVal));
+    const heat = v => { if(metric==='growth'){ if(v<0){const t=Math.min(1,Math.abs(v)/Math.max(1,-vmin));return `rgba(224,50,42,${(0.02+t*0.12).toFixed(2)})`;} const t=Math.min(1,v/Math.max(1,vmax));return `rgba(26,157,95,${(0.02+t*0.11).toFixed(2)})`;} const t=(v-vmin)/((vmax-vmin)||1); return `rgba(120,122,140,${(0.02+t*0.10).toFixed(2)})`; };
+    const dense = g.rows.length*g.cols.length>20;
+    const nLead = flat.filter(d=>d.growth>=0).length, nLag = flat.length-nLead;
+    const hasCat = (st.s5rows||[]).includes('品类')||(st.s5cols||[]).includes('品类');
+    const rowDims=st.s5rows||[], colDims=st.s5cols||[];
+    const colLevels=Math.max(1,colDims.length), rowLevels=Math.max(1,rowDims.length);
+    const ckey=(c,li)=>c.parts.slice(0,li+1).map(p=>p.val).join('|');
+    const colHead=li=>{const out=[];let i=0;while(i<g.cols.length){const key=ckey(g.cols[i],li);let sp=0;while(i+sp<g.cols.length&&ckey(g.cols[i+sp],li)===key)sp++;out.push({label:colDims.length?g.cols[i].parts[li].val:g.cols[i].label,span:sp,k:key+'@'+i});i+=sp;}return out;};
+    const rStart=(ri,li)=>ri===0||g.rows[ri].parts.slice(0,li+1).map(p=>p.val).join('|')!==g.rows[ri-1].parts.slice(0,li+1).map(p=>p.val).join('|');
+    const rSpan=(ri,li)=>{if(!rStart(ri,li))return 0;let n=1;for(let k=ri+1;k<g.rows.length;k++){if(g.rows[k].parts.slice(0,li+1).map(p=>p.val).join('|')===g.rows[ri].parts.slice(0,li+1).map(p=>p.val).join('|'))n++;else break;}return n;};
+    const stkTop = colLevels===1?'sticky top-0 z-10':'';
+    const toggleFav = key => set&&set({focusCells:(st.focusCells||[]).includes(key)?(st.focusCells||[]).filter(k=>k!==key):[...(st.focusCells||[]),key]});
+    // row/col merge state
+    const mrgR = st.mergedRowGroups || [];
+    const mrgC = st.mergedColGroups || [];
+    const findRowGroup = ri => mrgR.findIndex(g=>g.includes(ri));
+    const findColGroup = ci => mrgC.findIndex(g=>g.includes(ci));
+    const rowGroupOf = ri => { const gi=findRowGroup(ri); return gi>=0?mrgR[gi]:null; };
+    const colGroupOf = ci => { const gi=findColGroup(ci); return gi>=0?mrgC[gi]:null; };
+    // row label drag
+    const [rowDragSrc,setRowDragSrc]=useState(null);
+    const [rowDragOver,setRowDragOver]=useState(null);
+    const [colDragSrc,setColDragSrc]=useState(null);
+    const [colDragOver,setColDragOver]=useState(null);
+    const onRowDragStart=ri=>{setRowDragSrc(ri);};
+    const onRowDragOver=(e,ri)=>{e.preventDefault();if(rowDragSrc!=null&&rowDragSrc!==ri)setRowDragOver(ri);};
+    const onRowDragLeave=()=>{setRowDragOver(null);};
+    const onRowDrop=ri=>{
+      if(rowDragSrc!=null&&rowDragSrc!==ri){
+        const sg=findRowGroup(rowDragSrc), dg=findRowGroup(ri);
+        let newGroups;
+        if(sg>=0&&dg>=0){
+          const merged=[...new Set([...mrgR[sg],...mrgR[dg]])].sort((a,b)=>a-b);
+          newGroups=mrgR.filter((_,i)=>i!==sg&&i!==dg);newGroups.push(merged);
+        } else if(sg>=0){
+          const merged=[...new Set([...mrgR[sg],ri])].sort((a,b)=>a-b);
+          newGroups=mrgR.filter((_,i)=>i!==sg);newGroups.push(merged);
+        } else if(dg>=0){
+          const merged=[...new Set([...mrgR[dg],rowDragSrc])].sort((a,b)=>a-b);
+          newGroups=mrgR.filter((_,i)=>i!==dg);newGroups.push(merged);
+        } else {
+          newGroups=[...mrgR,[rowDragSrc,ri].sort((a,b)=>a-b)];
+        }
+        set({mergedRowGroups:newGroups});
+      }
+      setRowDragSrc(null);setRowDragOver(null);
+    };
+    const onRowDragEnd=()=>{setRowDragSrc(null);setRowDragOver(null);};
+    const onColDragStart=ci=>{setColDragSrc(ci);};
+    const onColDragOver=(e,ci)=>{e.preventDefault();if(colDragSrc!=null&&colDragSrc!==ci)setColDragOver(ci);};
+    const onColDragLeave=()=>{setColDragOver(null);};
+    const onColDrop=ci=>{
+      if(colDragSrc!=null&&colDragSrc!==ci){
+        const sg=findColGroup(colDragSrc), dg=findColGroup(ci);
+        let newGroups;
+        if(sg>=0&&dg>=0){
+          const merged=[...new Set([...mrgC[sg],...mrgC[dg]])].sort((a,b)=>a-b);
+          newGroups=mrgC.filter((_,i)=>i!==sg&&i!==dg);newGroups.push(merged);
+        } else if(sg>=0){
+          const merged=[...new Set([...mrgC[sg],ci])].sort((a,b)=>a-b);
+          newGroups=mrgC.filter((_,i)=>i!==sg);newGroups.push(merged);
+        } else if(dg>=0){
+          const merged=[...new Set([...mrgC[dg],colDragSrc])].sort((a,b)=>a-b);
+          newGroups=mrgC.filter((_,i)=>i!==dg);newGroups.push(merged);
+        } else {
+          newGroups=[...mrgC,[colDragSrc,ci].sort((a,b)=>a-b)];
+        }
+        set({mergedColGroups:newGroups});
+      }
+      setColDragSrc(null);setColDragOver(null);
+    };
+    const onColDragEnd=()=>{setColDragSrc(null);setColDragOver(null);};
+    const unmergeRowGroup=gi=>{set({mergedRowGroups:mrgR.filter((_,i)=>i!==gi)});};
+    const unmergeColGroup=gi=>{set({mergedColGroups:mrgC.filter((_,i)=>i!==gi)});};
+    // build merged row/col span map for rendering
+    // mergedRowMap: {ri: {skip, span, groupIdx}} — only first ri in group renders, with rowSpan
+    const mergedRowMap={};
+    mrgR.forEach((mg,gi)=>{
+      mg.forEach((ri,idx)=>{
+        if(idx===0) mergedRowMap[ri]={skip:false,span:mg.length,groupIdx:gi};
+        else mergedRowMap[ri]={skip:true,span:0,groupIdx:gi};
+      });
+    });
+    const mergedColMap={};
+    mrgC.forEach((mg,gi)=>{
+      mg.forEach((ci,idx)=>{
+        if(idx===0) mergedColMap[ci]={skip:false,span:mg.length,groupIdx:gi};
+        else mergedColMap[ci]={skip:true,span:0,groupIdx:gi};
+      });
+    });
+    const gridCard = (
+    <Card title={`机会网格 · ${(st.s5rows||[]).join(' · ')||'全部'} × ${(st.s5cols||[]).join(' · ')||'全部'}`} pill={`${g.rows.length}×${g.cols.length}`}>
+      <div className="mb-2.5"><DimAxes st={st} set={set}/></div>
+      <div className="flex items-center gap-3 mb-2 text-[11px] text-ink2 flex-wrap">
+        <span className="font-semibold text-ink">{g.rows.length*g.cols.length} 格</span>
+        {(mrgR.length+mrgC.length>0) && <span className="flex items-center gap-1 text-brand-600 font-semibold">{mrgR.length+mrgC.length} 组已合并</span>}
+        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-sm inline-block" style={{background:'rgba(26,157,95,0.5)'}}/>领先 {nLead}</span>
+        <span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-sm inline-block" style={{background:'rgba(224,50,42,0.5)'}}/>落后 {nLag}</span>
+        {hasCat && <span className="flex items-center gap-1 text-brand-600">品类层级<select value={st.s5catLevel} onChange={e=>set&&set({s5catLevel:e.target.value})} className="bg-brand-50 border border-brand-200 rounded px-1.5 py-0.5 text-[11px] font-semibold text-brand-700 outline-none">{['一级','二级','三级'].map(l=><option key={l}>{l}</option>)}</select></span>}
+        <div className="ml-auto flex items-center gap-0.5 bg-[#f4f4f6] rounded-lg p-0.5">
+          {[['growth','增速'],['share','市占'],['scale','GMV']].map(([k,l])=>(<button key={k} onClick={()=>setMetric(k)} className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${metric===k?'bg-white text-ink shadow-sm':'text-ink2 hover:text-ink'}`}>{l}</button>))}
         </div>
       </div>
-      
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 mb-3">竞对基准线</h3>
-        <div className="space-y-2">
-          {benchmarks.map(b=>(
-            <div key={b.metric} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-              <span className="text-xs font-bold text-indigo-600 w-24 shrink-0">{b.metric}</span>
-              <span className="text-xs font-bold text-slate-800">{b.value}</span>
-              <span className="text-[10px] text-slate-400 flex-1 text-right">{b.detail}</span>
-            </div>
-          ))}
-        </div>
+      <div className="text-[10px] text-ink2 mb-1.5">💡 拖拽行/列标签到另一个标签上可合并（合并后 hover 出现拆分按钮）</div>
+      <div className="overflow-auto cs border border-[#eee] rounded-xl" style={{maxHeight: big?'56vh':'320px'}}>
+        <table className="border-collapse w-full">
+        <thead>{Array.from({length:colLevels}).map((_,li)=>{
+          const isLeaf=li===colLevels-1;
+          // for leaf level with merges, build custom headers; otherwise use colHead
+          let headers;
+          if(isLeaf && mrgC.length>0){
+            headers=[];
+            let ci=0;
+            while(ci<g.cols.length){
+              const cm=mergedColMap[ci];
+              if(cm&&cm.skip){ci++;continue;}
+              const span=cm?cm.span:1;
+              const cg=colGroupOf(ci);
+              const label=cg?cg.map(i=>g.cols[i].label).join(' + '):g.cols[ci].parts[li]?.val||g.cols[ci].label;
+              headers.push({ci,span,label,cg});
+              ci+=span;
+            }
+          } else {
+            headers=colHead(li).map((h,hi)=>{
+              let startCi=0; for(let k=0;k<hi;k++) startCi+=colHead(li)[k].span;
+              return {ci:startCi,span:h.span,label:h.label,cg:null};
+            });
+          }
+          return (
+          <tr key={li}>
+            {li===0 && (rowLevels>1
+              ? rowDims.map((rd,i)=><th key={i} rowSpan={colLevels} className={`${stkTop} p-1.5 bg-[#fafafa] text-ink2 text-[10px] font-semibold whitespace-nowrap border-b border-r border-[#ececee] ${i===0?'rounded-l-lg':''}`}>{rd}</th>)
+              : <th rowSpan={colLevels} className={`${colLevels===1?'sticky top-0 left-0 z-20':stkTop} p-2 bg-[#fafafa] text-ink2 text-[10px] font-semibold rounded-l-lg text-left whitespace-nowrap border-b border-r border-[#ececee]`}>{(rowDims[0]||'行')} \ 列</th>)}
+            {headers.map(({ci,span,label,cg},hi)=>{
+              const isOver=colDragOver!=null&&colDragOver>=ci&&colDragOver<ci+span;
+              const isSrc=colDragSrc!=null&&colDragSrc>=ci&&colDragSrc<ci+span;
+              return <th key={ci} colSpan={span} draggable={isLeaf} onDragStart={isLeaf?()=>onColDragStart(ci):undefined} onDragOver={isLeaf?e=>onColDragOver(e,ci):undefined} onDragLeave={isLeaf?onColDragLeave:undefined} onDrop={isLeaf?()=>onColDrop(ci):undefined} onDragEnd={isLeaf?onColDragEnd:undefined} className={`${stkTop} p-2 bg-[#fafafa] text-[11px] font-bold text-ink whitespace-nowrap text-center border-b border-[#ececee] ${isLeaf?'cursor-grab active:cursor-grabbing select-none':''} ${isOver?'bg-[#e9e6ff] ring-2 ring-brand-400 ring-offset-1':''} ${isSrc?'opacity-50 ring-2 ring-dashed ring-brand-200':''} ${isLeaf&&cg?'bg-brand-50':''}`}>
+                <div className="group/cl relative">{label}{isLeaf&&cg&&<button onClick={e=>{e.stopPropagation();unmergeColGroup(findColGroup(ci));}} title="拆分列合并" className="absolute -top-0.5 -right-0.5 text-[8px] px-0.5 py-0 rounded bg-white border border-brand-200 text-brand-600 font-semibold opacity-0 group-hover/cl:opacity-100 transition-opacity hover:bg-brand-100">✕</button>}</div>
+              </th>;
+            })}
+          </tr>);
+        })}</thead>
+        <tbody>{g.rows.map((r,ri)=>{
+          const rm=mergedRowMap[ri];
+          if(rm&&rm.skip){
+            // must render <tr> for rowSpan to work, but no cells
+            return <tr key={r.label}></tr>;
+          }
+          const rSp=rm?rm.span:1;
+          const rGi=rm?rm.groupIdx:-1;
+          return (<tr key={r.label}>
+          {rowLevels>1
+            ? rowDims.map((rd,li)=>{const sp=rSpan(ri,li);if(!sp)return null;const isLeaf=li===rowLevels-1;const isOver=isLeaf&&rowDragOver!=null&&rowDragOver===ri;const isSrc=isLeaf&&rowDragSrc!=null&&rowDragSrc===ri;return <td key={li} draggable={isLeaf} onDragStart={isLeaf?()=>onRowDragStart(ri):undefined} onDragOver={isLeaf?e=>onRowDragOver(e,ri):undefined} onDragLeave={isLeaf?onRowDragLeave:undefined} onDrop={isLeaf?()=>onRowDrop(ri):undefined} onDragEnd={isLeaf?onRowDragEnd:undefined} rowSpan={sp*rSp} className={`p-1.5 bg-[#fafafa] text-[11px] font-semibold text-ink2 whitespace-nowrap align-middle border-r border-[#ececee] ${rStart(ri,li)&&li===0?'border-t border-[#ececee]':''} ${isLeaf?'cursor-grab active:cursor-grabbing select-none':''} ${isOver?'bg-[#e9e6ff] ring-2 ring-brand-400 ring-offset-1':''} ${isSrc?'opacity-50 ring-2 ring-dashed ring-brand-200':''} ${isLeaf&&rGi>=0?'bg-brand-50':''}`}>{r.parts[li].val}</td>;})
+            : (() => {
+              const isOver=rowDragOver!=null&&rowDragOver===ri;
+              const isSrc=rowDragSrc!=null&&rowDragSrc===ri;
+              const rg=rowGroupOf(ri);
+              const label=rg?rg.map(i=>g.rows[i].label).join(' + '):r.label;
+              return <td draggable onDragStart={()=>onRowDragStart(ri)} onDragOver={e=>onRowDragOver(e,ri)} onDragLeave={onRowDragLeave} onDrop={()=>onRowDrop(ri)} onDragEnd={onRowDragEnd} rowSpan={rSp} className={`sticky left-0 z-10 p-1.5 bg-[#fafafa] text-[11px] font-semibold text-ink2 border-r border-[#ececee] text-center whitespace-nowrap cursor-grab active:cursor-grabbing select-none ${isOver?'bg-[#e9e6ff] ring-2 ring-brand-400 ring-offset-1':''} ${isSrc?'opacity-50 ring-2 ring-dashed ring-brand-200':''} ${rGi>=0?'bg-brand-50':''}`}>
+                <div className="group/rl relative">{label}{rGi>=0 && <button onClick={e=>{e.stopPropagation();unmergeRowGroup(rGi);}} title="拆分行合并" className="absolute -top-0.5 -right-0.5 text-[8px] px-0.5 py-0 rounded bg-white border border-brand-200 text-brand-600 font-semibold opacity-0 group-hover/rl:opacity-100 transition-opacity hover:bg-brand-100">✕</button>}</div>
+              </td>;
+            })()}
+          {g.cols.map((c,ci)=>{
+            const cm=mergedColMap[ci];
+            if(cm&&cm.skip) return null;
+            const cSp=cm?cm.span:1;
+            const cGi=cm?cm.groupIdx:-1;
+            const d=g.cells[ri][ci];
+            let aggScale=d.scale, aggGrowth=d.growth, aggShare=d.share, aggSku=d.sku;
+            const rRows=rGi>=0?mrgR[rGi]:[ri];
+            const cCols=cGi>=0?mrgC[cGi]:[ci];
+            if(rRows.length>1||cCols.length>1){
+              let ts=0,tg=0,tsh=0,tn=0;
+              rRows.forEach(mri=>cCols.forEach(mci=>{const cd=g.cells[mri][mci];ts+=cd.scale;tg+=cd.growth;tsh+=cd.share;tn+=cd.sku;}));
+              const n=rRows.length*cCols.length;aggScale=+ts.toFixed(1);aggGrowth=+((tg/n).toFixed(0));aggShare=+((tsh/n).toFixed(1));aggSku=tn;
+            }
+            const fix=st.attrFix||{};
+            const on=sel&&sel.ri===ri&&sel.ci===ci;
+            const key=`${r.label} × ${c.label}`;
+            const fav=(st.focusCells||[]).includes(key);
+            const isBlank=st.hideBlank && aggSku<=2 && !fav;
+            if(isBlank) return(<td key={c.label} colSpan={cSp} rowSpan={rSp} className="p-[3px]"><div className="rounded-xl border border-dashed border-[#e6e6e8] bg-[#fafafa] opacity-45 flex items-center justify-center text-[10px] text-ink2 min-w-[80px]" style={{minHeight:'44px'}}>空白 · 已隐藏</div></td>);
+            const gtxt=`${aggGrowth>0?'+':''}${aggGrowth}%`;
+            const main=metric==='growth'?gtxt:metric==='share'?`${aggShare}%`:`¥${aggScale}万`;
+            const sub=metric==='growth'?`市占${aggShare}% · ${aggSku}品`:metric==='share'?`增速${gtxt} · ${aggSku}品`:`市占${aggShare}% · ${aggSku}品`;
+            const aria=`${r.label} × ${c.label}，${metric==='growth'?'增速':metric==='share'?'市占':'GMV'} ${main}${fav?'，重点关注':''}，回车查看明细`;
+            return(<td key={c.label} colSpan={cSp} rowSpan={rSp} className="p-[3px]"><div role="button" tabIndex={0} aria-label={aria} onClick={()=>onCell(ri,ci)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onCell(ri,ci);}}} className={`group relative ${dense?'p-1.5 min-w-[80px]':(big?'p-3 min-w-[120px]':'p-2.5 min-w-[92px]')} rounded-xl border cursor-pointer hover:shadow-[0_2px_10px_rgba(0,0,0,0.08)] transition-all ${fav?'border-[#f0d572]':'border-[#ececee]'} ${on?'ring-2 ring-brand-500 ring-offset-1':''}`} style={{background: fav?'#fff6d6':heat(metVal({scale:aggScale,growth:aggGrowth,share:aggShare,sku:aggSku}))}}><button onClick={e=>{e.stopPropagation();toggleFav(key);}} tabIndex={-1} title={fav?'取消重点关注':'标注为重点关注'} className={`absolute -top-1.5 -right-1.5 w-4.5 h-4.5 rounded-full flex items-center justify-center text-[11px] leading-none shadow-sm transition-opacity z-10 ${fav?'bg-[#f5b800] text-white opacity-100':'bg-white border border-[#e0e0e0] text-[#c7c7cc] opacity-0 group-hover:opacity-100'}`} style={{width:'18px',height:'18px'}}>{fav?'★':'☆'}</button><div className={`font-bold ${big?'text-lg':'text-[14px]'} ${metric==='growth'?(aggGrowth<0?'text-neg':'text-pos'):'text-ink'}`}>{main}</div><div className="text-[10px] text-ink2 mt-0.5 leading-tight">{sub}</div></div></td>);})}</tr>);})}</tbody>
+      </table>
       </div>
-      
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-        <span className="text-lg">🤖</span>
-        <div>
-          <div className="text-xs font-bold text-amber-800">Agent 策略捕获</div>
-          <div className="text-xs text-amber-700 mt-1">诊断偏误修正已记录为 <span className="font-bold bg-amber-100 px-1 rounded">diagnosis_override</span>，您对红海/失守的容忍度将影响后续仿真权重</div>
+    </Card>);
+    const [detW,setDetW]=useState(420);
+    const startDetDrag=(e)=>{e.preventDefault();const move=ev=>{const vw=typeof window!=='undefined'?window.innerWidth:1440;setDetW(Math.min(600,Math.max(280,vw-ev.clientX-40)));};const up=()=>{document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up);document.body.style.userSelect='';};document.body.style.userSelect='none';document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);};
+    const detail = sel ? <DetailCard rowParts={g.rows[sel.ri].parts} colParts={g.cols[sel.ci].parts} rvLabel={g.rows[sel.ri].label} cvLabel={g.cols[sel.ci].label} catLevel={st.s5catLevel} onClose={()=>onCell(null)} st={st} set={set}/> : null;
+    return big
+      ? (<div className="flex gap-0 items-start" style={{height:'100%'}}>
+          <div className="flex-1 min-w-0 overflow-auto">{gridCard}</div>
+          {detail && <><div onMouseDown={startDetDrag} onDoubleClick={()=>setDetW(420)} title="拖动调整宽度（双击复位）" className="cursor-col-resize flex items-center justify-center hover:bg-brand-50 w-[6px] shrink-0 self-stretch"><div className="w-[3px] h-9 rounded-full bg-[#e0e0e0] hover:bg-brand-400 transition-colors"/></div><div className="shrink-0 overflow-auto" style={{width:detW+'px'}}>{detail}</div></>}
+        </div>)
+      : (<div>{gridCard}{detail}</div>);
+  }
+  if(s===5){
+    const ann=[['中端×高潜','蓝海','bg-brand-50 text-brand-700','#7c4dff','市占跌+需求涨=供给盲区，优先布局'],['高端×头部','红海','bg-negbg text-neg','#e0322a','头部价格战，利润被压缩'],['高端×高潜','现金牛','bg-[#f4f4f6] text-ink2','#8a8a8e','高利润主力区间，维持投放'],['普及×白牌','机会','bg-posbg text-pos','#1a9d5f','1688 厂货爆发，可源头定制'],['中端×白牌','失守','bg-negbg text-neg','#e0322a','白牌渗透严重，需防御']];
+    return (<div>
+      <Card title="诊断标注" pill="5 类">
+        <div className="space-y-1.5">{ann.map(a=>(<div key={a[0]} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-[#fafafa]"><span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{background:a[3]}}/><div className="flex-1"><div className="flex items-center gap-2"><span className="text-[12px] font-semibold">{a[0]}</span><span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${a[2]}`}>{a[1]}</span></div><div className="text-[11px] text-ink2 mt-0.5">{a[4]}</div></div></div>))}</div>
+      </Card>
+      <Card title="竞对基准线">
+        <div className="space-y-1.5 text-[11px]">
+          {[['天猫统治区','高端×头部','科沃斯+追觅+石头占72%'],['抖音新势力','中端×高潜','云鲸+添可增速+85%'],['白牌价格线','普及×白牌','1688 厂货均价<¥899']].map(b=>(<div key={b[0]} className="flex items-center gap-2 p-2 rounded bg-slate-50"><span className="font-bold text-ai-600 w-16 shrink-0">{b[0]}</span><span className="font-bold text-slate-700">{b[1]}</span><span className="text-slate-400 flex-1 text-right">{b[2]}</span></div>))}
         </div>
+      </Card>
+    </div>);
+  }
+  if(s===6){
+    const vol=Math.round(1000*(1-(st.s7sell-2000)/5000));
+    const gmv=((vol*st.s7sell)/10000).toFixed(1);
+    const profit=((vol*(st.s7sell-st.s7buy))/10000).toFixed(1);
+    const rate=((st.s7sell-st.s7buy)/st.s7sell*100).toFixed(1);
+    const bars=[['销量',vol.toLocaleString(),'bg-brand-500',Math.min(vol/15,90),'text-ink'],['销额',gmv+'万','bg-brand-500',Math.min(gmv*5,90),'text-ink'],['毛利',profit+'万','bg-brand-500',Math.min(profit*8,90),'text-ink'],['毛利率',rate+'%','bg-brand-500',Math.min(rate*1.5,90),'text-ink']];
+    return (<Card title="仿真推演结果" pill="30天">
+      <div className="text-[11px] text-slate-500 mb-3">{st.s7type==='product'?'上品仿真 · 单品引入':'运营仿真 · '+({exposure:'加曝光',price:'降价',activity:'上活动',combo:'组合推'}[st.s7op])}</div>
+      <div className={`flex items-end gap-4 ${big?'h-56':'h-36'} border-b border-slate-100 pb-2`}>
+        {bars.map(b=>(<div key={b[0]} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5"><span className={`text-[11px] font-black ${b[4]}`}>{b[1]}</span><div className={`w-8 ${b[2]} rounded-t transition-all`} style={{height:b[3]+'%'}}/><span className="text-[10px] text-slate-400">{b[0]}</span></div>))}
+      </div>
+      <div className="mt-3 text-[11px] text-slate-500 bg-slate-50 rounded-lg p-2.5">参照格「中端×头部」相似度 78% · 前提：动销达现有品 70%、蚕食率 15%</div>
+    </Card>);
+  }
+  // final summary viz
+  return (<div>
+    <Card title="策略已沉淀至 ERP 策略中心">
+      <div className="flex items-center gap-1.5 flex-wrap mb-3 text-[10px]">
+        {['用户操作','捕获确认','碎片聚类','ERP 入库'].map((n,i)=><React.Fragment key={n}><span className={`px-2 py-1 rounded font-bold ${i===3?'bg-brand-50 text-brand-600':'bg-slate-100 text-slate-500'}`}>{n}</span>{i<3&&<span className="text-brand-400 font-bold">→</span>}</React.Fragment>)}
+      </div>
+      {CAPTURE.map(c=><div key={c.code} className="flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0 text-[11.5px]"><span className="font-mono text-[10px] text-ai-600 bg-ai-50 px-1.5 py-0.5 rounded shrink-0">{c.code}</span></div>)}
+    </Card>
+    <Card title="本次交付物">
+      {[['🗺️ 诊断网格',`${g.rows.length}×${g.cols.length} · 5类标注`],['💡 洞察结论','1蓝海 / 1红海 / 1机会'],['📊 仿真结果','上品+运营ROI推演'],['🧠 策略沉淀','7 条 → ERP 可复用']].map(x=>(<div key={x[0]} className="flex justify-between text-[12px] py-1.5 border-b border-slate-50 last:border-0"><span className="text-slate-500">{x[0]}</span><span className="font-bold">{x[1]}</span></div>))}
+    </Card>
+  </div>);
+};
+
+/* =================== APP =================== */
+const TEMPLATES = [
+  {id:'defend', cat:'扫地机', name:'头部竞争防御', author:'王晓刚 · 资深采销', desc:'价格带 × 品牌类型 · 盯头部统治区与失守格',
+   highlights:['维度：价格带 × 品牌类型','指标：增速 + 市占率 + 集中度','诊断：京东市占<均值 且 增速<0 → 红海','关注：头部统治区、我方失守格'],
+   patch:{s5rows:['价格带'], s5cols:['品牌类型']}},
+  {id:'supply', cat:'扫地机', name:'供给空白挖掘', author:'李敏 · 资深运营', desc:'价格带 × 功能类型 · 找搜索高供给少的蓝海',
+   highlights:['维度：价格带 × 功能类型','指标：增速 + 搜索-供给缺口 + 供给密度','诊断：销售额占比>15% 且 增速>均值 → 蓝海','关注：搜索高、供给少的空白格'],
+   patch:{s5rows:['价格带'], s5cols:['功能类型'], s2dims:[{name:'价格带',src:'用户决策',w:50,on:true},{name:'品牌类型',src:'用户决策',w:30,on:false},{name:'功能类型',src:'站外趋势',w:15,on:true},{name:'导航方式',src:'策略模板',w:5,on:false},{name:'宠物功能',src:'站外趋势',w:10,on:false}]}},
+];
+const LayersIcon = ({cls}) => <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 2l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5"/></svg>;
+
+const stepSummary = (s, st) => {
+  switch(s){
+    case 0: { const a=st.s1||{}; const p=[]; if(a.chanOn&&(a.chans||[]).length)p.push((a.chans||[]).length+' 渠道'); if(a.priceOn&&(a.prices||[]).length)p.push('价格带×'+(a.prices||[]).length); if(a.brandOn&&(a.brands||[]).length)p.push((a.brands||[]).length+' 品牌'); if(a.kwOn&&a.kw)p.push('关键词'); if(a.metricOn)p.push(a.metricMode==='top'?('Top'+a.metricTop):(a.metricName+'范围')); return p.length?p.join(' · '):'未设条件'; }
+    case 1: return st.s2dims.filter(d=>d.on).map(d=>d.name).join(' × ')||'未选维度';
+    case 2: return st.s4metrics.filter(m=>m.on).map(m=>m.name).join(' / ');
+    case 3: return `${(st.s5rows||[]).join(' · ')} × ${(st.s5cols||[]).join(' · ')}`;
+    case 4: return `${st.s6rules.length} 条诊断规则 · ${st.s6rules.map(r=>r.label).join(' / ')}`;
+    default: return '';
+  }
+};
+
+const ConfigFlow = ({fromTemplate,finished,onFinish,onReset,genInsight,insight,insightBusy,st,set,onRegen,onSaveAnalysis}) => {
+  const [open,setOpen] = useState(null);
+  const [touched,setTouched] = useState(()=>new Set());
+  const [savedAna,setSavedAna] = useState(false);
+  const toggle = s => setOpen(o=>o===s?null:s);
+  const finishStep = s => { setTouched(t=>new Set([...t,s])); setOpen(null); };
+  return (
+    <div>
+      <div className="mb-3">
+        <button onClick={onReset} className="text-[11px] font-semibold text-ink2 hover:text-brand-600 mb-1.5">← 重新选择拆解方式</button>
+        <div className="text-[13px] font-semibold">{fromTemplate?`模板配置总结 · ${fromTemplate}`:'自定义拆解配置'}</div>
+        <div className="text-[11.5px] text-ink2 mt-0.5">{fromTemplate?'以下是模板已配好的 5 步，可逐项修改；右侧网格实时预览':'共 5 步，点任意步展开配置，不配置则用默认；右侧网格实时预览'}</div>
+      </div>
+      {STEP_NAMES.map((name,s)=>{
+        const Ctl=CONTROLS[s]; const isOpen=open===s;
+        const status = fromTemplate?'来自模板':(touched.has(s)?'已配置':'默认');
+        const statusCls = (fromTemplate||touched.has(s))?'bg-brand-50 text-brand-600':'bg-[#f4f4f6] text-ink2';
+        return (
+          <div key={s} className={`mb-2 rounded-xl border bg-white overflow-hidden transition-all ${isOpen?'border-brand-300 shadow-[0_2px_10px_rgba(61,90,254,0.08)]':'border-[#ececee]'}`}>
+            <button onClick={()=>toggle(s)} className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left hover:bg-[#fafafa]">
+              <span className="text-[10px] font-bold text-white bg-brand-500 rounded-md px-1.5 py-0.5 shrink-0">{s+1}/{STEP_NAMES.length}</span>
+              <span className="text-[12.5px] font-semibold shrink-0">{name}</span>
+              <span className="text-[11px] text-ink2 truncate flex-1">{stepSummary(s,st)}</span>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${statusCls}`}>{status}</span>
+              <svg className={`w-4 h-4 text-ink2 shrink-0 transition-transform ${isOpen?'rotate-180':''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            {isOpen && (
+              <div className="px-3.5 pb-3.5 pt-2 border-t border-[#f4f4f6] fade">
+                <Ctl st={st} set={set} done={false} embed onConfirm={()=>{}}/>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={()=>finishStep(s)} className="px-4 py-1.5 rounded-full bg-brand-50 border border-brand-200 hover:bg-brand-100 text-brand-600 text-[12px] font-semibold transition-all">完成此步</button>
+                  <button onClick={()=>setOpen(null)} className="px-4 py-1.5 rounded-full border border-[#e0e0e0] text-ink2 text-[12px] font-semibold hover:bg-[#f4f6ff] transition-all">跳过（用默认）</button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <div className="mt-3 space-y-2.5">
+        <div className="flex flex-wrap gap-2">
+          <button onClick={onRegen} className="px-4 py-1.5 rounded-full bg-brand-50 border border-brand-200 hover:bg-brand-100 text-brand-600 text-[12px] font-semibold transition-all">🔄 重新生成网格</button>
+          <button onClick={()=>{onSaveAnalysis&&onSaveAnalysis();setSavedAna(true);}} disabled={savedAna} className={`px-4 py-1.5 rounded-full border text-[12px] font-semibold transition-all ${savedAna?'bg-brand-50 border-brand-200 text-brand-600':'bg-white border-[#e0e0e0] text-ink2 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-600'}`}>{savedAna?'✓ 已保存到历史':'💾 保存本次分析'}</button>
+        </div>
+        {!finished
+          ? <button onClick={onFinish} className="px-5 py-2 rounded-full bg-white border border-[#e0e0e0] text-[#333] hover:bg-brand-50 hover:border-brand-200 hover:text-brand-600 text-[12.5px] font-semibold transition-all">完成并沉淀策略</button>
+          : (insight
+            ? <div className="rounded-xl border border-[#ececee] bg-[#fafafa] p-3">
+                <div className="text-[11px] font-semibold text-brand-600 mb-1.5">🔮 AI 网格洞察结论</div>
+                <div className="text-[12px] text-[#333] leading-relaxed">按模板规则，<b className="text-brand-600">1.5K-3K × 高潜</b> 命中「蓝海机会」，建议优先布局；<b>3K-5K × 头部</b> 命中「红海预警」，维持观望。规则与偏好已沉淀至 ERP。</div>
+              </div>
+            : <button onClick={genInsight} disabled={insightBusy} className="px-5 py-2 rounded-full bg-brand-50 border border-brand-200 hover:bg-brand-100 text-brand-600 text-[12.5px] font-semibold transition-all disabled:opacity-60">{insightBusy?'生成中…':'🔮 生成洞察结论'}</button>)}
       </div>
     </div>
   );
 };
 
+const StepFlow = ({stage,confirm,typing,finished,onReset,genInsight,insight,insightBusy,st,set,drawing,onRegen,onSaveAnalysis}) => {
+  const N=STEP_NAMES.length;
+  const [editing,setEditing]=useState(()=>new Set());
+  const [saved,setSaved]=useState(null);
+  const [savedAna,setSavedAna]=useState(false);
+  const startEdit=s=>setEditing(e=>new Set([...e,s]));
+  const endEdit=s=>setEditing(e=>{const n=new Set(e);n.delete(s);return n;});
+  return (<>
+    <button onClick={onReset} className="text-[11px] font-semibold text-ink2 hover:text-brand-600 mb-2">← 重新选择拆解方式</button>
+    <Agent ts="刚刚">好，我们一步步配置（共 {N} 步）。每一步在卡片里调整即可，确认后进入下一步；已确认的步骤可随时「修改此步」。右侧网格实时更新。</Agent>
+    {Array.from({length:Math.min(stage+1,N)}).map((_,s)=>{
+      if(s===3 && drawing) return (<React.Fragment key={s}><Agent><div className="text-[11px] font-semibold text-brand-600 mb-1.5">Step {s+1} / {N} · {STEP_NAMES[s]}</div><div className="flex items-center gap-2 text-[12.5px] text-ink2"><span className="w-4 h-4 rounded-full border-[3px] border-[#e0e0e0] border-t-[#7c4dff] spin"/><span>网格绘制中，请稍候…</span></div></Agent></React.Fragment>);
+      const Ctl=CONTROLS[s]; const isDone=s<stage; const isEditing=editing.has(s); const editable=!isDone||isEditing;
+      return (
+        <React.Fragment key={s}>
+          <Agent>
+            <div className="text-[11px] font-semibold text-brand-600 mb-1.5 flex items-center gap-2">Step {s+1} / {N} · {STEP_NAMES[s]}
+              {isDone && !isEditing && <span className="text-[10px] text-[#34c759] font-semibold">✓ 已确认</span>}
+              {isEditing && <span className="text-[10px] text-brand-600 font-semibold">修改中</span>}
+            </div>
+            <div className="mb-2.5">{AGENT_INTRO[s]}</div>
+            <Ctl st={st} set={set} done={!editable} embed={isDone} onConfirm={confirm}/>
+            {isDone && !isEditing && <button onClick={()=>startEdit(s)} className="mt-2.5 text-[11px] font-semibold text-brand-600 hover:underline">✎ 修改此步</button>}
+            {isDone && isEditing && <button onClick={()=>endEdit(s)} className="mt-2.5 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 hover:bg-brand-100 text-brand-600 text-[12px] font-semibold transition-all">完成修改</button>}
+          </Agent>
+          {isDone && !isEditing && <Capture code={CAPTURE[s].code}>{CAPTURE[s].t}</Capture>}
+        </React.Fragment>
+      );
+    })}
+    {(typing||insightBusy) && <div className="flex gap-2.5 mb-4"><div className="w-7 h-7 rounded-full bg-ink flex items-center justify-center text-sm">🤖</div><div className="bg-white border border-[#ececee] rounded-[18px] rounded-tl-md px-4 py-3.5"><div className="typing flex gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-300"/><span className="w-1.5 h-1.5 rounded-full bg-slate-300"/><span className="w-1.5 h-1.5 rounded-full bg-slate-300"/></div></div></div>}
+    {finished && <Agent ts="配置已完成">
+      <div className="text-[12.5px] mb-2">网格已生成 ✅ 想改配置的话，点上方任意步骤的「✎ 修改此步」调整，改完在这里<b>重新生成网格</b>；也可<b>保存本次分析</b>，下次进来接着看。</div>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={onRegen} className="px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 hover:bg-brand-100 text-brand-600 text-[12px] font-semibold transition-all">🔄 重新生成网格</button>
+        <button onClick={()=>{onSaveAnalysis&&onSaveAnalysis();setSavedAna(true);}} disabled={savedAna} className={`px-3.5 py-1.5 rounded-full border text-[12px] font-semibold transition-all ${savedAna?'bg-brand-50 border-brand-200 text-brand-600':'bg-white border-[#e0e0e0] text-ink2 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-600'}`}>{savedAna?'✓ 已保存到历史':'💾 保存本次分析'}</button>
+      </div>
+    </Agent>}
+    {finished && !insight && !insightBusy && <Agent ts="完成">
+      配置完成 ✅ 网格已按你的规则诊断（见右侧）。点下方生成本次网格洞察结论。
+      <div className="mt-2.5"><button onClick={genInsight} className="px-4 py-2 rounded-full bg-brand-50 border border-brand-200 hover:bg-brand-100 text-brand-600 text-[12.5px] font-semibold transition-all">🔮 生成洞察结论</button></div>
+    </Agent>}
+    {finished && insight && <Agent ts="诊断结论">
+      <div className="text-[11px] font-semibold text-brand-600 mb-1.5 flex items-center gap-1">🔮 AI 网格洞察结论</div>
+      按你配置的规则，扫地机在 <b>{(st.s5rows||[]).join(' · ')} × {(st.s5cols||[]).join(' · ')}</b> 网格上：<b className="text-brand-600">1.5K-3K × 高潜</b> 增速高于类目均值、京东市占偏低，命中「蓝海机会」——<b>建议优先布局</b>；<b>3K-5K × 头部</b> 集中度高、增速转负，命中「红海预警」，<b>维持观望</b>。其余多为现金牛与长尾格。
+    </Agent>}
+    {finished && insight && saved===null && <Agent ts="建议">
+      要不要把这次拆解保存为<b>分析模板</b>？下次同类品类可一键复用（维度 / 归一 / 指标 / 诊断规则 一起打包）。
+      <div className="mt-2.5 flex gap-2">
+        <button onClick={()=>setSaved(true)} className="px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 hover:bg-brand-100 text-brand-600 text-[12px] font-semibold">保存为分析模板</button>
+        <button onClick={()=>setSaved('no')} className="px-3.5 py-1.5 rounded-full border border-[#e0e0e0] text-ink2 text-[12px] font-semibold hover:bg-[#f4f6ff]">暂不</button>
+      </div>
+    </Agent>}
+    {finished && insight && saved===true && <Capture code="analysis_template">已保存为分析模板，下次可在「经验模板库」一键复用。</Capture>}
+  </>);
+};
 
-// ===== 步骤7: 机会仿真 =====
-const Step7Simulation = ({data,onChange}) => {
-  const [simType,setSimType] = useState('product');
-  const [sellPrice,setSellPrice] = useState(2299);
-  const [buyPrice,setBuyPrice] = useState(1500);
-  const [operation,setOperation] = useState('exposure');
-  
-  const estVolume = Math.round(1000 * (1 - (sellPrice - 2000) / 5000));
-  const estGMV = ((estVolume * sellPrice) / 10000).toFixed(1);
-  const estProfit = ((estVolume * (sellPrice - buyPrice)) / 10000).toFixed(1);
-  const profitRate = ((sellPrice - buyPrice) / sellPrice * 100).toFixed(1);
-  
-  return (
-    <div className="space-y-5">
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-          <span className="w-5 h-5 bg-rose-500 text-white rounded flex items-center justify-center text-xs">7</span>
-          仿真类型
-        </h3>
-        <div className="flex gap-2 mb-4">
-          <button onClick={()=>setSimType('product')} className={`flex-1 p-3 rounded-lg border text-center transition-all ${simType==='product'?'bg-rose-50 border-rose-300 shadow-sm':'border-slate-200 hover:border-slate-300'}`}>
-            <div className="text-base mb-1">📦</div>
-            <div className={`text-xs font-bold ${simType==='product'?'text-rose-700':'text-slate-500'}`}>上品仿真</div>
-            <div className="text-[10px] text-slate-400">评估新品引入效果</div>
-          </button>
-          <button onClick={()=>setSimType('ops')} className={`flex-1 p-3 rounded-lg border text-center transition-all ${simType==='ops'?'bg-rose-50 border-rose-300 shadow-sm':'border-slate-200 hover:border-slate-300'}`}>
-            <div className="text-base mb-1">⚡</div>
-            <div className={`text-xs font-bold ${simType==='ops'?'text-rose-700':'text-slate-500'}`}>运营仿真</div>
-            <div className="text-[10px] text-slate-400">推演运营动作效果</div>
-          </button>
+const InsightConclusion = () => (
+  <div>
+    <div className="text-[11px] font-semibold text-brand-600 mb-1.5 flex items-center gap-1">🔮 AI 网格洞察结论 · 机会</div>
+    <div className="text-[12.5px] leading-relaxed">
+      当前扫地机机会网格上，<b className="text-brand-600">1.5K-3K × 高潜</b> 增速领先、京东市占偏低——供给盲区型<b>蓝海</b>，建议优先布局；<b>&lt;1.5K × 白牌</b> 厂货供给爆发、增速高，可源头切入；<b>3K-5K × 头部</b> 集中度高、增速转负，已成<b>红海</b>，维持观望。整体 2 个高潜机会格、1 个红海格。
+    </div>
+  </div>
+);
+const TemplateCard = ({t,applyTemplate}) => (
+  <div className="px-3.5 py-3 rounded-xl border border-[#e0e0e0] bg-white hover:border-brand-300 transition-all">
+    <div className="flex items-center gap-2">
+      <LayersIcon cls="w-4 h-4 text-brand-600 shrink-0"/>
+      <span className="text-[12.5px] font-semibold">{t.cat} · {t.name}</span>
+      <span className="ml-auto text-[10px] text-ink2">{t.author}</span>
+    </div>
+    <div className="text-[11px] text-ink2 mt-1">{t.desc}</div>
+    <div className="mt-2 space-y-0.5">{t.highlights.map((h,i)=>(<div key={i} className="flex items-start gap-1.5 text-[11px] text-ink2"><span className="text-brand-500 shrink-0">·</span>{h}</div>))}</div>
+    <button onClick={()=>applyTemplate(t)} className="mt-2.5 px-3.5 py-1.5 rounded-full bg-white border border-[#e0e0e0] text-[#333] hover:bg-brand-50 hover:border-brand-200 hover:text-brand-600 text-[12px] font-semibold transition-all">套用此模板</button>
+  </div>
+);
+const ChatBody = ({started,beginFlow,applyTemplate,fromTemplate,finished,onFinish,onReset,coldView,setColdView,genInsight,insight,insightBusy,stage,confirm,typing,st,set,drawing,onRegen,onSaveAnalysis}) => {
+  if(started && fromTemplate) return <ConfigFlow fromTemplate={fromTemplate} finished={finished} onFinish={onFinish} onReset={onReset} genInsight={genInsight} insight={insight} insightBusy={insightBusy} st={st} set={set} onRegen={onRegen} onSaveAnalysis={onSaveAnalysis}/>;
+  if(started) return <StepFlow stage={stage} confirm={confirm} typing={typing} finished={finished} onReset={onReset} genInsight={genInsight} insight={insight} insightBusy={insightBusy} st={st} set={set} drawing={drawing} onRegen={onRegen} onSaveAnalysis={onSaveAnalysis}/>;
+  if(coldView==='lib') return (<>
+    <div className="flex items-center gap-2 mb-2">
+      <button onClick={()=>setColdView('insight')} className="text-[11px] font-semibold text-ink2 hover:text-brand-600">← 返回</button>
+      <span className="text-[13px] font-semibold">经验模板库</span>
+      <span className="text-[11px] text-ink2">选择即套用，也可自定义</span>
+    </div>
+    <div className="grid gap-2">{TEMPLATES.map(t=><TemplateCard key={t.id} t={t} applyTemplate={applyTemplate}/>)}</div>
+    <button onClick={beginFlow} className="mt-3 px-4 py-2 rounded-full border border-[#e0e0e0] text-ink2 text-[12.5px] font-semibold hover:bg-[#f4f6ff]">或 从头自定义配置</button>
+  </>);
+  return (<>
+    <User>帮我拆解一下扫地机品类的机会。</User>
+    <Agent ts="刚刚">
+      已进入<b>网格配置</b>，选择一种方式开始拆解 👇
+      <MethodChooser beginFlow={beginFlow} applyTemplate={applyTemplate} openLib={()=>setColdView('lib')}/>
+    </Agent>
+  </>);
+};
+
+const PLUGINS = [
+  {id:'grid', name:'品类网格拆解', desc:'把品类拆成机会网格，定位蓝海 / 红海格子', icon:'▦', active:true},
+  {id:'trend', name:'趋势洞察', desc:'品类趋势、热词、增长信号追踪', icon:'📈'},
+  {id:'compete', name:'竞对分析', desc:'竞品价格 / 份额 / 上新监控', icon:'🎯'},
+  {id:'select', name:'选品助手', desc:'按机会格推荐引商与开品', icon:'🧭'},
+  {id:'price', name:'价格监控', desc:'全渠道价格带与波动预警', icon:'🏷️'},
+  {id:'stock', name:'库存健康', desc:'动销 / 滞销与补货建议', icon:'📦'},
+];
+const NAV_CAP = [['专家技能',6],['插件',4],['知识库',12],['记忆',28],['自动化任务',3]];
+const Shell = ({onHome, active, children}) => (
+  <div className="w-full h-full grid" style={{gridTemplateColumns:'260px 1fr'}}>
+    <aside className="bg-white border border-[#e4e2ee] rounded-xl flex flex-col overflow-hidden shadow-[0_10px_30px_rgba(20,22,40,0.06)]">
+      <div className="px-4 py-3.5 flex items-center gap-2.5 border-b border-[#f0f0f0]">
+        <div className="w-9 h-9 rounded-2xl bg-ink flex items-center justify-center text-white text-[13px] font-bold">供</div>
+        <div><div className="text-[14px] font-semibold leading-tight">供应链 Agent</div><div className="text-[11px] text-ink2">Category Intelligence</div></div>
+      </div>
+      <div className="flex-1 overflow-y-auto cs px-2.5 pt-3">
+        <div onClick={onHome} className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl cursor-pointer text-[13px] font-semibold ${active==='home'?'bg-brand-50 text-brand-600':'text-[#333] hover:bg-[#f4f6ff]'}`}>
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4zM14 13h6v6h-6z"/></svg>插件中心
         </div>
-        
-        {simType==='product' ? (
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-xs mb-2"><span className="text-slate-500 font-bold">预计前台售价</span><span className="text-rose-600 font-bold">¥{sellPrice}</span></div>
-              <input type="range" min={800} max={5000} step={50} value={sellPrice} onChange={e=>setSellPrice(+e.target.value)} className="w-full accent-rose-500 h-1.5 bg-slate-200 rounded-full appearance-none"/>
-            </div>
-            <div>
-              <div className="flex justify-between text-xs mb-2"><span className="text-slate-500 font-bold">目标采购底价</span><span className="text-brand-600 font-bold">¥{buyPrice}</span></div>
-              <input type="range" min={500} max={3000} step={50} value={buyPrice} onChange={e=>setBuyPrice(+e.target.value)} className="w-full accent-brand-500 h-1.5 bg-slate-200 rounded-full appearance-none"/>
-            </div>
+        <div className="text-[10px] font-semibold tracking-wider text-ink2 px-2 pt-4 pb-1.5">能力</div>
+        {NAV_CAP.map(([n,c])=>(
+          <div key={n} className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[#f4f6ff] cursor-pointer text-[13px] text-[#333]">
+            <svg className="w-4 h-4 text-ink2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="8" strokeWidth={1.6}/></svg>{n}<span className="ml-auto text-[10px] font-semibold text-[#b0b0b5]">{c}</span>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {[
-              {k:'exposure',l:'加曝光',icon:'👁️',desc:'增加站内搜索权重+20%'},
-              {k:'price',l:'降价',icon:'📉',desc:'促销价下调8-15%'},
-              {k:'activity',l:'上活动',icon:'🎯',desc:'参加秒杀/百亿补贴'},
-              {k:'combo',l:'组合推',icon:'🔗',desc:'搭配耗材/配件组合销售'},
-            ].map(op=>(
-              <button key={op.k} onClick={()=>setOperation(op.k)} className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${operation===op.k?'bg-rose-50 border-rose-300':'border-slate-200 hover:border-slate-300'}`}>
-                <span className="text-base">{op.icon}</span>
-                <div>
-                  <div className={`text-xs font-bold ${operation===op.k?'text-rose-700':'text-slate-600'}`}>{op.l}</div>
-                  <div className="text-[10px] text-slate-400">{op.desc}</div>
-                </div>
+        ))}
+      </div>
+      <div className="px-4 py-3 border-t border-[#f0f0f0] flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-full bg-[#e8e8ed] flex items-center justify-center text-[11px] font-bold text-ink2">王</div>
+        <div><div className="text-[12px] font-semibold">王晓刚 · 采销</div><div className="text-[11px] text-ink2">大家电工作台</div></div>
+      </div>
+    </aside>
+    <main className="overflow-y-auto cs bg-[#f4f6ff]">{children}</main>
+  </div>
+);
+const HomePage = ({onOpen}) => (
+  <div className="max-w-[900px] mx-auto px-8 py-10">
+    <div className="text-[20px] font-semibold">插件中心</div>
+    <div className="text-[12px] text-ink2 mt-1">选择一个插件开始工作</div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+      {PLUGINS.map(p=>(
+        <button key={p.id} disabled={!p.active} onClick={()=>p.active&&onOpen()} className={`text-left p-5 rounded-2xl border bg-white transition-all ${p.active?'border-[#ececee] hover:border-brand-300 hover:shadow-[0_4px_20px_rgba(61,90,254,0.1)] cursor-pointer':'border-[#f0f0f0] opacity-55 cursor-not-allowed'}`}>
+          <div className="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-[20px] mb-3">{p.icon}</div>
+          <div className="text-[15px] font-semibold flex items-center gap-2">{p.name}{p.active?<span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-600">可用</span>:<span className="text-[10px] text-ink2">即将上线</span>}</div>
+          <div className="text-[12px] text-ink2 mt-1.5 leading-relaxed">{p.desc}</div>
+        </button>
+      ))}
+    </div>
+  </div>
+);
+const Sel = ({label,value,options,onChange}) => (
+  <div className="flex-1 min-w-[120px]">
+    <div className="text-[11px] text-ink2 mb-1">{label}</div>
+    <select value={value} onChange={e=>onChange(e.target.value)} className="w-full bg-white border border-[#e0e0e0] rounded-lg px-2.5 py-2 text-[12.5px] font-semibold outline-none focus:border-brand-400">{options.map(o=><option key={o}>{o}</option>)}</select>
+  </div>
+);
+const ScopeSelect = ({scope,setScope,onBack,onConfirm}) => {
+  const s=scope;
+  const setDL1=v=>{const dL2=Object.keys(DEPT_TREE[v])[0];setScope({...s,dL1:v,dL2,dL3:DEPT_TREE[v][dL2][0]});};
+  const setDL2=v=>setScope({...s,dL2:v,dL3:DEPT_TREE[s.dL1][v][0]});
+  const setCL1=v=>{const cL2=Object.keys(CAT_TREE[v])[0];setScope({...s,cL1:v,cL2,cL3:CAT_TREE[v][cL2][0]});};
+  const setCL2=v=>setScope({...s,cL2:v,cL3:CAT_TREE[s.cL1][v][0]});
+  return (
+    <div className="max-w-[640px] mx-auto px-8 py-10">
+      <button onClick={onBack} className="text-[12px] font-semibold text-ink2 hover:text-brand-600 mb-3">← 返回插件中心</button>
+      <div className="text-[20px] font-semibold mb-1">品类网格拆解 · 选择分析范围</div>
+      <div className="text-[12px] text-ink2 mb-6">先确定部门、品类与时间维度，再进入网格配置。</div>
+      <div className="bg-white border border-[#ececee] rounded-2xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
+        <div className="text-[12px] font-semibold mb-2">部门（一 / 二 / 三级）</div>
+        <div className="flex gap-2 mb-5">
+          <Sel label="一级部门" value={s.dL1} options={Object.keys(DEPT_TREE)} onChange={setDL1}/>
+          <Sel label="二级部门" value={s.dL2} options={Object.keys(DEPT_TREE[s.dL1])} onChange={setDL2}/>
+          <Sel label="三级部门" value={s.dL3} options={DEPT_TREE[s.dL1][s.dL2]} onChange={v=>setScope({...s,dL3:v})}/>
+        </div>
+        <div className="text-[12px] font-semibold mb-2">品类（一 / 二 / 三级）</div>
+        <div className="flex gap-2 mb-5">
+          <Sel label="一级品类" value={s.cL1} options={Object.keys(CAT_TREE)} onChange={setCL1}/>
+          <Sel label="二级品类" value={s.cL2} options={Object.keys(CAT_TREE[s.cL1])} onChange={setCL2}/>
+          <Sel label="三级品类" value={s.cL3} options={CAT_TREE[s.cL1][s.cL2]} onChange={v=>setScope({...s,cL3:v})}/>
+        </div>
+        <div className="text-[12px] font-semibold mb-2">时间维度</div>
+        <div className="flex gap-2 mb-6"><Sel label="时间窗" value={s.timeDim} options={TIME_DIMS} onChange={v=>setScope({...s,timeDim:v})}/><div className="flex-1"/><div className="flex-1"/></div>
+        <button onClick={onConfirm} className="w-full py-2.5 rounded-full bg-white border border-[#e0e0e0] text-[#333] hover:bg-brand-50 hover:border-brand-200 hover:text-brand-600 text-[13px] font-semibold transition-all">进入网格配置 →</button>
+      </div>
+    </div>
+  );
+};
+const MethodChooser = ({beginFlow,applyTemplate,openLib}) => {
+  const hasTpl = TEMPLATES.length>0;
+  const ruleRows=[['圈选方式','Top N'],['Top N','500（按 GMV）'],['关键词','迷你'],['品牌卡口','海尔 / 美的 / 容声'],['价格区间','1K – 5K'],['排除项','商用机型']];
+  return (
+    <div>
+      <div className="text-[12.5px] mb-2.5">针对 <b>扫地机器人</b>，提供两种拆解方案，可下钻选择：</div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+        {/* 方案 A：业务规则自定义 */}
+        <div className="rounded-xl border border-[#e0e0e0] bg-white p-3.5 flex flex-col">
+          <div className="flex items-center gap-1.5 mb-1"><svg className="w-4 h-4 text-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4"/></svg><span className="text-[12.5px] font-bold">业务规则自定义</span><span className="ml-auto text-[9px] font-semibold text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded">白盒</span></div>
+          <div className="text-[10px] text-ink2 mb-2.5">进入后按下面这样，逐行圈定货盘核心指标（示意）：</div>
+          <div className="rounded-lg border border-[#ececee] bg-[#fafafa] divide-y divide-[#f0f0f0] mb-3 flex-1">
+            {ruleRows.map(([k,v])=>(<div key={k} className="flex items-center justify-between px-2.5 py-1.5 text-[11px]"><span className="text-ink2">{k}</span><span className="font-semibold text-ink">{v}</span></div>))}
+          </div>
+          <button onClick={beginFlow} className="w-full py-2 rounded-lg bg-white border border-[#e0e0e0] text-[#333] text-[12px] font-semibold hover:bg-brand-50 hover:border-brand-200 hover:text-brand-600 transition-all">按业务规则自定义拆解</button>
+        </div>
+        {/* 方案 B：模板化处理 */}
+        <div className="rounded-xl border border-[#e0e0e0] bg-white p-3.5 flex flex-col">
+          <div className="flex items-center gap-1.5 mb-1"><svg className="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 2l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5"/></svg><span className="text-[12.5px] font-bold">模板化处理</span><span className="ml-auto text-[9px] font-semibold text-ink2 bg-[#f0f0f0] px-1.5 py-0.5 rounded">智能</span></div>
+          <div className="text-[10px] text-ink2 mb-2.5">优先套用已配置的经验模板；无匹配模板时自动切换 AI 推荐。</div>
+          <div className="rounded-lg border border-[#ececee] bg-[#fafafa] p-2 space-y-1.5 mb-3 flex-1">
+            {hasTpl ? <><div className="text-[10px] text-ink2">已有匹配模板：</div>
+              {TEMPLATES.map(t=>(<div key={t.id} className="flex items-center gap-1.5 text-[11px]"><span className="font-semibold truncate flex-1">{t.cat} · {t.name}</span><span className="text-[9px] text-brand-600 bg-brand-50 px-1 py-0.5 rounded shrink-0">模板</span></div>))}</>
+            : <div className="text-[11px] text-ink2 py-2 text-center">无匹配模板 → 由 AI 推荐拆解方案</div>}
+          </div>
+          <button onClick={()=>applyTemplate(TEMPLATES[0])} className="w-full py-2 rounded-lg bg-white border border-[#e0e0e0] text-[#333] hover:bg-brand-50 hover:border-brand-200 hover:text-brand-600 text-[12px] font-semibold transition-all">{hasTpl?'套用模板拆解':'用 AI 推荐拆解'}</button>
+          {hasTpl && <button onClick={openLib} className="w-full mt-1.5 text-[10px] text-ink2 hover:text-brand-600">查看 / 切换其他模板 →</button>}
+        </div>
+      </div>
+    </div>
+  );
+};
+const HKEY='cgp_history_v1';
+const loadHistory=()=>{ try{ return JSON.parse(localStorage.getItem(HKEY)||'[]'); }catch(e){ return []; } };
+const saveHistory=(arr)=>{ try{ localStorage.setItem(HKEY, JSON.stringify(arr)); }catch(e){} };
+
+const App = () => {
+  // per-step state
+  const [st,setSt] = useState({
+    s1:{chanOn:true,chans:['京东自营','京东POP'],attrOn:false,shopTypes:[],bizModes:[],brandTypes:[],brandOn:false,brands:[],priceOn:true,prices:['1.5K-3K','3K-5K'],kwOn:false,kw:'',metricOn:true,metricName:'GMV',metricMode:'top',metricTop:500,metricMin:'',metricMax:''},
+    s2dims:[{name:'价格带',src:'用户决策',w:50,on:true},{name:'品牌类型',src:'用户决策',w:30,on:true},{name:'功能类型',src:'站外趋势',w:15,on:false},{name:'品类',src:'策略模板',w:8,on:false},{name:'导航方式',src:'策略模板',w:5,on:false},{name:'宠物功能',src:'站外趋势',w:10,on:false}],
+    s3attrs:[{name:'价格带',raw:['0-1499','1500-2999','3000-4999','5000+'],norm:['<1.5K','1.5K-3K','3K-5K','>5K'],conf:95,ok:true},{name:'品牌类型',raw:['一线','新锐','ODM'],norm:['头部','高潜','白牌'],conf:62,ok:false},{name:'功能类型',raw:['无基站','带集尘','洗烘基站'],norm:['单机','自动集尘','全能基站'],conf:78,ok:false},{name:'导航方式',raw:['视觉避障','激光','双模','结构光'],norm:['视觉','LDS','LDS+视觉','结构光'],conf:35,ok:false}],
+    s4metrics:[{name:'GMV规模',cat:'基础',on:true},{name:'增速',cat:'基础',on:true},{name:'市占率',cat:'基础',on:true},{name:'客单价',cat:'基础',on:false},{name:'SKU数量',cat:'基础',on:false},{name:'搜索-供给缺口',cat:'供给',on:false},{name:'供给密度',cat:'供给',on:false},{name:'搜索指数',cat:'趋势',on:false},{name:'内容热度',cat:'趋势',on:false},{name:'转化率',cat:'竞争',on:false},{name:'复购率',cat:'竞争',on:false},{name:'退货率',cat:'竞争',on:false},{name:'价格弹性',cat:'仿真前置',on:false},{name:'上品可行性',cat:'仿真前置',on:false}],
+    s5rows:['价格带'], s5cols:['品牌类型'], s5catLevel:'二级', dimValSel:{}, hideBlank:false, focusCells:[], attrFix:{}, mergedRowGroups:[], mergedColGroups:[],
+    s6rules:[
+      {label:'蓝海机会', color:'#7c4dff', conds:[{m:'销售额占比',op:'>',v:'类目15%'},{m:'京东市占',op:'<',v:'类目平均'},{m:'增速',op:'>',v:'类目平均'}]},
+      {label:'红海预警', color:'#e0322a', conds:[{m:'集中度',op:'>',v:'70%'},{m:'增速',op:'<',v:'0'}]},
+    ],
+    s7type:'product', s7sell:2299, s7buy:1500, s7op:'exposure',
+  });
+  const set = patch => setSt(p=>({...p,...patch}));
+
+  const [started,setStarted] = useState(false);       // false = cold start (default grid)
+  const [fromTemplate,setFromTemplate] = useState(null); // template name if applied
+  const [stage,setStage] = useState(0);                // custom flow progress
+  const [typing,setTyping] = useState(false);
+  const [tplFinished,setTplFinished] = useState(false);
+  const [expanded,setExpanded] = useState(false);
+  const [dockOpen,setDockOpen] = useState(false);
+  const [drawing,setDrawing] = useState(false);
+  const [coldView,setColdView] = useState('insight');
+  const [insight,setInsight] = useState(false);
+  const [insightBusy,setInsightBusy] = useState(false);
+  const [sel,setSel] = useState(null);
+  const [history,setHistory] = useState(loadHistory);
+  const [screen,setScreen] = useState('home');   // home | scope | tool
+  const [scope,setScope] = useState({dL1:'家电事业群',dL2:'大家电',dL3:'冰洗空',cL1:'清洁电器',cL2:'扫地机器人',cL3:'全能基站',timeDim:'近90天'});
+  const [vw,setVw] = useState(typeof window!=='undefined'?window.innerWidth:1440);
+  const [mtab,setMtab] = useState('chat');   // narrow-mode content: chat | grid
+  const [vizW,setVizW] = useState(430);      // right viz column width (draggable)
+  const chatRef = useRef(null);
+  useEffect(()=>{ if(typeof window==='undefined')return; const h=()=>setVw(window.innerWidth); window.addEventListener('resize',h); return ()=>window.removeEventListener('resize',h); },[]);
+  const startDrag = (e) => {
+    e.preventDefault();
+    const move = ev => setVizW(Math.min(720, Math.max(300, window.innerWidth - ev.clientX)));
+    const up = () => { document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',up); document.body.style.userSelect=''; };
+    document.body.style.userSelect='none';
+    document.addEventListener('mousemove',move); document.addEventListener('mouseup',up);
+  };
+  const narrow = vw<900;
+  const mid = vw>=900 && vw<1240;
+
+  const STEPN = STEP_NAMES.length;
+  const activeStep = Math.min(stage,STEPN-1);
+  const finished = started ? (fromTemplate ? true : stage>=STEPN) : false;
+
+  const runDraw = () => { setDrawing(true); setTimeout(()=>{ setDrawing(false); const w=(typeof window!=='undefined'?window.innerWidth:1440); setVizW(Math.min(720, Math.max(480, Math.round(w*0.46)))); },1300); };
+  const genInsight = () => { setInsightBusy(true); setTimeout(()=>{ setInsightBusy(false); setInsight(true); }, 800); };
+  const beginFlow = () => { setFromTemplate(null); setStarted(true); setStage(0); setTplFinished(false); setInsight(false); };
+  const applyTemplate = (t) => { set(t.patch); setFromTemplate(t.cat+' · '+t.name); setStarted(true); setTplFinished(false); setInsight(false); setSel(null); runDraw(); };
+  const coldReset = () => { setStarted(false); setFromTemplate(null); setStage(0); setTplFinished(false); setInsight(false); setColdView('insight'); setSel(null); setExpanded(false); set({mergedRowGroups:[],mergedColGroups:[],hideBlank:false,dimValSel:{}}); };
+  const saveAnalysis = () => {
+    const rec = { id:Date.now(), ts:new Date().toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}), catLabel:scope.cL2+(scope.cL3?' · '+scope.cL3:''), mode:(fromTemplate?'模板':'自定义'), templateName:fromTemplate, rows:st.s5rows, cols:st.s5cols, st:JSON.parse(JSON.stringify(st)), scope:JSON.parse(JSON.stringify(scope)) };
+    setHistory(h=>{ const nx=[rec,...h].slice(0,20); saveHistory(nx); return nx; });
+  };
+  const restoreRecord = (r) => {
+    setSt(r.st); setScope(r.scope); setFromTemplate(r.mode==='模板'?(r.templateName||'历史模板'):null);
+    setStarted(true); setStage(STEPN); setInsight(true); setTplFinished(true); setSel(null); setColdView('insight'); setScreen('tool'); runDraw();
+  };
+  const openLib = () => { coldReset(); setColdView('lib'); };
+  const onFinish = () => setTplFinished(true);
+  const confirm = () => { const cur=stage; setTyping(true); setTimeout(()=>{ setTyping(false); setStage(s=>s+1); if(cur===2) runDraw(); }, 600); };
+  const onCell = (ri,ci) => { if(ri===null){setSel(null);return;} setSel({ri,ci}); };
+  useEffect(()=>{ if(chatRef.current) chatRef.current.scrollTop=chatRef.current.scrollHeight; },[stage,typing,started]);
+
+  const vizLabel = `机会网格 · ${(st.s5rows||[]).join('·')} × ${(st.s5cols||[]).join('·')}`;
+  const statusText = !started?'默认结果':finished?'已完成':(fromTemplate?'模板配置':'自定义配置');
+  const catLabel = scope.cL2 + (scope.cL3?' · '+scope.cL3:'');
+  const SB = 'clamp(236px, 17vw, 292px)';
+  const showViz = screen==='tool' && started && (fromTemplate || stage>=3);   // 开始绘制后才拉出可视化
+  const resizable = showViz && !narrow;
+  const gridCols = narrow
+    ? `${SB} 1fr`
+    : !showViz ? `${SB} 1fr`
+    : `${SB} minmax(300px,1fr) 6px ${vizW}px`;
+
+  return (
+   <>
+    <div className="w-full h-full grid transition-all duration-300 bg-[#f6f6f8] p-3 gap-3" style={{gridTemplateColumns: gridCols}}>
+
+      {/* ===== LEFT (light) ===== */}
+      <aside className="bg-white border border-[#e4e2ee] rounded-xl flex flex-col overflow-hidden shadow-[0_10px_30px_rgba(20,22,40,0.06)]">
+        <div className="px-5 py-5 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 via-brand-400 to-[#4ed6c5] flex items-center justify-center text-white text-[14px] font-black shadow-[0_8px_22px_rgba(124,77,255,0.2)]">AI</div>
+          <div><div className="text-[14px] font-semibold leading-tight">供应链 Agent</div><div className="text-[11px] text-ink2">Category Intelligence</div></div>
+        </div>
+        <div className="mx-4 mb-3 grid grid-cols-2 rounded-lg bg-[#f4f4f7] p-1"><button className="py-2 rounded-md text-[13px] font-semibold text-ink2 hover:text-ink">报告</button><button className="py-2 rounded-md bg-white text-[13px] font-semibold text-brand-600 shadow-sm">对话</button></div><button onClick={()=>setScreen('home')} className="mx-4 py-2.5 rounded-lg bg-gradient-to-r from-brand-50 to-[#f3fbfa] border border-brand-100 hover:border-brand-300 text-brand-600 text-[13px] font-semibold flex items-center justify-start px-4 gap-2 transition-all">＋ 新建任务</button>
+        <div className="flex-1 overflow-y-auto cs px-2.5 pb-3">
+          <div className="text-[10px] font-semibold tracking-wider text-ink2 px-2 pt-4 pb-1.5">能力</div>
+          {[
+            ['专家技能',6,'M9.663 17h4.673M12 3a6 6 0 00-3.75 10.687c.37.29.6.72.6 1.19V16h6.3v-1.123c0-.47.23-.9.6-1.19A6 6 0 0012 3z'],
+            ['插件',4,'M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z'],
+            ['知识库',12,'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'],
+            ['记忆',28,'M4 7c0 1.657 3.582 3 8 3s8-1.343 8-3-3.582-3-8-3-8 1.343-8 3zM4 7v10c0 1.657 3.582 3 8 3s8-1.343 8-3V7'],
+            ['自动化任务',3,'M13 10V3L4 14h7v7l9-11h-7z'],
+          ].map(x=>(
+            <div key={x[0]} role={x[0]==='插件'?'button':undefined} tabIndex={x[0]==='插件'?0:undefined} onClick={()=>{if(x[0]==='插件')setScreen('home');}} onKeyDown={e=>{if(x[0]==='插件'&&(e.key==='Enter'||e.key===' ')){e.preventDefault();setScreen('home');}}} className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-[#f4f6ff] cursor-pointer text-[13px] ${x[0]==='插件'&&screen==='home'?'bg-brand-50 text-brand-600 font-semibold':'text-[#333]'}`}>
+              <svg className={`w-4 h-4 shrink-0 ${x[0]==='插件'&&screen==='home'?'text-brand-600':'text-ink2'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d={x[2]}/></svg>
+              {x[0]}<span className="ml-auto text-[10px] font-semibold text-[#b0b0b5]">{x[1]}</span>
+            </div>
+          ))}
+          <div className="text-[10px] font-semibold tracking-wider text-ink2 px-2 pt-4 pb-1.5">正在执行</div>
+          {screen!=='tool'
+            ? <div className="px-2.5 py-3 rounded-xl border border-dashed border-[#e0e0e0] text-[11px] text-ink2 text-center mb-1.5">暂无进行中的分析<br/>从插件中心开始</div>
+            : <div className="p-2.5 rounded-xl bg-brand-50 border border-brand-200 mb-1.5">
+                <div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${!started?'bg-[#c7c7cc]':'bg-[#34c759] pulse'}`}/><span className="text-[13px] font-semibold">品类网格拆解 · {catLabel}</span></div>
+                <div className="text-[11px] text-ink2 ml-4 mt-1">{!started?'默认网格 · 待配置':finished?'已完成 · 策略已沉淀':fromTemplate?`模板配置 · ${fromTemplate}`:'自定义配置中'}</div>
+                <div className="ml-4 mt-2 h-1 rounded-full bg-[#e8e8ed] overflow-hidden"><div className="h-full bg-[#7c4dff] transition-all" style={{width:(!started?0:finished?100:55)+'%'}}/></div>
+              </div>}
+          <div className="text-[10px] font-semibold tracking-wider text-ink2 px-2 pt-4 pb-1.5">历史分析</div>
+          {history.length===0
+            ? <div className="px-2.5 py-3 rounded-xl border border-dashed border-[#e0e0e0] text-[11px] text-ink2 text-center mb-1.5">暂无历史<br/>完成后点「保存本次分析」</div>
+            : history.map(r=>(
+              <div key={r.id} role="button" tabIndex={0} onClick={()=>restoreRecord(r)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();restoreRecord(r);}}} className="p-2.5 rounded-xl hover:bg-[#f4f6ff] cursor-pointer mb-1">
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#c7c7cc]"/><span className="text-[13px] font-semibold text-[#333] truncate">{r.catLabel}</span></div>
+                <div className="text-[11px] text-ink2 ml-4 mt-0.5 truncate">{(r.rows||[]).join('·')} × {(r.cols||[]).join('·')} · {r.mode} · {r.ts}</div>
+              </div>
+            ))}
+        </div>
+        <div className="px-4 py-3 border-t border-[#f0f0f0] flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-[#e8e8ed] flex items-center justify-center text-[11px] font-bold text-ink2">王</div>
+          <div><div className="text-[12px] font-semibold">王晓刚 · 采销</div><div className="text-[11px] text-ink2">大家电工作台</div></div>
+        </div>
+      </aside>
+
+      {screen==='home' && <main className="overflow-y-auto cs bg-transparent"><HomePage onOpen={()=>setScreen('scope')}/></main>}
+      {screen==='scope' && <main className="overflow-y-auto cs bg-transparent"><ScopeSelect scope={scope} setScope={setScope} onBack={()=>setScreen('home')} onConfirm={()=>{coldReset();setScreen('tool');}}/></main>}
+
+      {/* ===== MIDDLE (chat) ===== */}
+      {screen==='tool' && (narrow ? (!showViz||mtab==='chat') : true) && (
+      <main className="flex flex-col overflow-hidden bg-white border border-[#e8e8ee] rounded-xl shadow-[0_10px_30px_rgba(20,22,40,0.05)]">
+        {narrow && showViz && <div className="flex gap-1 px-3 py-2 bg-white border-b border-[#e0e0e0]">
+          {[['chat','对话 / 配置'],['grid','网格结果']].map(([k,l])=><button key={k} onClick={()=>setMtab(k)} className={`flex-1 py-1.5 rounded-lg text-[12px] font-semibold transition-all ${mtab===k?'bg-brand-50 text-brand-600':'text-ink2'}`}>{l}</button>)}
+        </div>}
+        <div className="px-5 py-3 glass border-b border-[#e0e0e0] flex items-center gap-3">
+          <div className="min-w-0"><div className="text-[14px] font-semibold truncate">品类网格拆解 · {catLabel}</div><div className="text-[11px] text-ink2 truncate">{scope.dL2} · {scope.timeDim}</div></div>
+          <button onClick={()=>setScreen('scope')} className="ml-auto shrink-0 text-[11px] font-semibold text-brand-600 border border-brand-200 bg-brand-50 rounded-full px-2.5 py-1 hover:bg-brand-100 transition-all">↩ 重新选择范围</button>
+          <div className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 ${!started?'bg-[#f0f0f0] text-ink2':finished?'bg-[#e8f8f0] text-[#34c759]':'bg-brand-50 text-brand-600'}`}><span className={`w-1.5 h-1.5 rounded-full ${!started?'bg-[#c7c7cc]':finished?'bg-[#34c759]':'bg-[#7c4dff] pulse'}`}/>{statusText}</div>
+        </div>
+        <div ref={chatRef} className="flex-1 overflow-y-auto cs px-5 py-5">
+          <ChatBody started={started} beginFlow={beginFlow} applyTemplate={applyTemplate} fromTemplate={fromTemplate} finished={finished} onFinish={onFinish} onReset={coldReset} coldView={coldView} setColdView={setColdView} genInsight={genInsight} insight={insight} insightBusy={insightBusy} stage={stage} confirm={confirm} typing={typing} st={st} set={set} drawing={drawing} onRegen={()=>{setSel(null);runDraw();}} onSaveAnalysis={saveAnalysis}/>
+        </div>
+        <div className="px-5 py-3 bg-white border-t border-[#e6e6e8]">
+          <div className="flex flex-wrap gap-2 mb-2.5">
+            <button onClick={coldReset} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-brand-200 bg-brand-50 text-[12px] font-semibold text-brand-600 hover:bg-brand-100 transition-all">
+              <LayersIcon cls="w-3.5 h-3.5"/>经验模板库
+            </button>
+            {['猜你想问','看某个格子的竞品','生成拆解报告'].map(c=>(
+              <button key={c} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#e6e6e8] bg-white text-[12px] font-medium text-[#333] hover:border-brand-300 hover:text-brand-600 transition-all">
+                <svg className="w-3.5 h-3.5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.5 6.5L20 12l-6.5 2.5L11 21l-2.5-6.5L2 12l6.5-2.5L11 3z"/></svg>{c}
               </button>
             ))}
           </div>
-        )}
-      </div>
-      
-      <div className="bg-slate-900 rounded-xl p-5 shadow-inner text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-tr from-rose-900/40 to-transparent pointer-events-none"/>
-        <h4 className="text-xs font-bold text-slate-300 mb-4 relative z-10">推演结果 (30天)</h4>
-        <div className="flex items-end gap-6 h-28 relative z-10 border-b border-slate-700/50 pb-2">
-          <div className="flex flex-col items-center justify-end h-full gap-2 flex-1 group">
-            <span className="text-[10px] font-black text-teal-300">{estVolume.toLocaleString()}</span>
-            <div className="w-8 bg-teal-500 rounded-t-sm transition-all" style={{height:`${Math.min(estVolume/15,90)}%`}}/>
-            <span className="text-[10px] text-slate-400">销量</span>
-          </div>
-          <div className="flex flex-col items-center justify-end h-full gap-2 flex-1 group">
-            <span className="text-[10px] font-black text-blue-300">{estGMV}万</span>
-            <div className="w-8 bg-blue-500 rounded-t-sm transition-all" style={{height:`${Math.min(parseFloat(estGMV)*5,90)}%`}}/>
-            <span className="text-[10px] text-slate-400">销额</span>
-          </div>
-          <div className="flex flex-col items-center justify-end h-full gap-2 flex-1 group">
-            <span className="text-[10px] font-black text-purple-300">{estProfit}万</span>
-            <div className="w-8 bg-purple-500 rounded-t-sm transition-all" style={{height:`${Math.min(parseFloat(estProfit)*8,90)}%`}}/>
-            <span className="text-[10px] text-slate-400">毛利</span>
-          </div>
-          <div className="flex flex-col items-center justify-end h-full gap-2 flex-1 group">
-            <span className="text-[10px] font-black text-rose-300">{profitRate}%</span>
-            <div className="w-8 bg-rose-500 rounded-t-sm transition-all" style={{height:`${Math.min(parseFloat(profitRate)*1.5,90)}%`}}/>
-            <span className="text-[10px] text-slate-400">毛利率</span>
+          <div className="flex items-center gap-2 bg-white border border-[#e0e0e0] rounded-2xl pl-4 pr-2 py-2 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <svg className="w-4 h-4 text-pos shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <input placeholder={finished?'分析已完成，可开启新任务…':'看市场、看选品引商和拆解机会，都可以问我哦～'} className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-[#b0b0b5]"/>
+            <button className="w-9 h-9 rounded-xl bg-white border border-[#e0e0e0] text-brand-600 flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 19V5m0 0l-7 7m7-7l7 7" transform="rotate(45 12 12)"/></svg></button>
           </div>
         </div>
-      </div>
-      
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-        <span className="text-lg">🤖</span>
-        <div>
-          <div className="text-xs font-bold text-amber-800">Agent 策略捕获</div>
-          <div className="text-xs text-amber-700 mt-1">运营偏好已记录为 <span className="font-bold bg-amber-100 px-1 rounded">operation_preference</span>，您倾向"加曝光优先"策略，将自动同步 ERP 策略中心</div>
+      </main>
+      )}
+
+      {resizable && (
+        <div onMouseDown={startDrag} onDoubleClick={()=>setVizW(430)} title="拖动调整宽度（双击复位）" className="cursor-col-resize flex items-center justify-center hover:bg-brand-50 group">
+          <div className="w-[3px] h-9 rounded-full bg-[#e0e0e0] group-hover:bg-brand-400 transition-colors"/>
         </div>
-      </div>
+      )}
+
+      {/* ===== RIGHT (viz) ===== */}
+      {showViz && (narrow ? mtab==='grid' : true) && (
+      <aside className="flex flex-col overflow-hidden bg-white border border-[#e4e2ee] rounded-xl shadow-[0_10px_30px_rgba(20,22,40,0.05)]">
+        {narrow && <div className="flex gap-1 px-3 py-2 bg-white border-b border-[#e0e0e0]">
+          {[['chat','对话 / 配置'],['grid','网格结果']].map(([k,l])=><button key={k} onClick={()=>setMtab(k)} className={`flex-1 py-1.5 rounded-lg text-[12px] font-semibold transition-all ${mtab===k?'bg-brand-50 text-brand-600':'text-ink2'}`}>{l}</button>)}
+        </div>}
+        <div className="px-4 py-3 glass border-b border-[#e0e0e0] flex items-center gap-2">
+          <span className="text-[14px] font-semibold">可视化结果</span>
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand-50 text-brand-600">{vizLabel}</span>
+          <div className="ml-auto flex items-center gap-1">
+            {!narrow && <button onClick={()=>setExpanded(e=>!e)} className={`px-3 h-7 rounded-full border text-[12px] font-semibold flex items-center gap-1 transition-all ${expanded?'bg-brand-50 border-brand-300 text-brand-700':'bg-white border-[#e0e0e0] text-ink2 hover:bg-brand-50 hover:border-brand-200 hover:text-brand-600'}`}>{expanded?'⤡ 退出全屏':'⛶ 全屏'}</button>}
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto cs p-4 bg-[#fafafc]">
+          {drawing ? (
+            <div className="h-full min-h-[280px] flex flex-col items-center justify-center text-center gap-3">
+              <div className="w-9 h-9 rounded-full border-[3px] border-[#e0e0e0] border-t-[#7c4dff] spin"/>
+              <div className="text-[13px] font-semibold text-ink">网格绘制中…</div>
+              <div className="text-[11px] text-ink2">正在按 {(st.s5rows||[]).join('·')} × {(st.s5cols||[]).join('·')} 交叉商品、计算指标</div>
+              <button onClick={runDraw} className="mt-1 text-[11px] font-semibold text-brand-600 hover:underline">较慢？点此重试</button>
+            </div>
+          ) : (<>
+            <VizStep s={4} st={st} set={set} big={expanded} sel={sel} onCell={onCell}/>
+          </>)}
+        </div>
+      </aside>
+      )}
+
     </div>
+
+    {/* ===== FULLSCREEN 可视化 ===== */}
+    {expanded && showViz && (
+      <div className="fixed inset-0 z-50 bg-white flex flex-col fade">
+        <div className="px-6 py-3 glass border-b border-[#e0e0e0] flex items-center gap-2">
+          <span className="text-[14px] font-semibold">可视化结果</span>
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand-50 text-brand-600">{vizLabel}</span>
+          <button onClick={()=>setExpanded(false)} className="ml-auto px-3 h-8 rounded-full bg-white border border-[#e0e0e0] text-[#333] hover:bg-brand-50 hover:border-brand-200 hover:text-brand-600 text-[12.5px] font-semibold transition-all">⤡ 退出全屏</button>
+        </div>
+        <div className="flex-1 overflow-y-auto cs p-6 bg-[#fafafc]">
+          <VizStep s={4} st={st} set={set} big={true} sel={sel} onCell={onCell}/>
+        </div>
+      </div>
+    )}
+   </>
   );
 };
 
-
-// ===== 主 App =====
-const App = () => {
-  const [currentStep,setCurrentStep] = useState(0);
-  const [stepData,setStepData] = useState({});
-  const [completed,setCompleted] = useState(new Set());
-  
-  const goStep = (i) => {
-    if(i <= currentStep + 1) setCurrentStep(i);
-  };
-  const nextStep = () => {
-    if(currentStep < 6) {
-      setCompleted(prev => new Set([...prev, currentStep]));
-      setCurrentStep(currentStep + 1);
-    }
-  };
-  const prevStep = () => {
-    if(currentStep > 0) setCurrentStep(currentStep - 1);
-  };
-  
-  const stepColor = (i) => {
-    if(completed.has(i)) return 'bg-emerald-500 text-white';
-    if(i === currentStep) return 'bg-brand-500 text-white shadow-lg shadow-brand-200';
-    return 'bg-slate-200 text-slate-500';
-  };
-  const lineColor = (i) => completed.has(i) ? 'bg-emerald-400' : 'bg-slate-200';
-  
-  const renderStep = () => {
-    switch(currentStep) {
-      case 0: return <Step1Cargo data={stepData} onChange={d=>setStepData(prev=>({...prev,...d}))}/>;
-      case 1: return <Step2Attributes data={stepData} onChange={d=>setStepData(prev=>({...prev,...d}))}/>;
-      case 2: return <Step3Normalize data={stepData} onChange={d=>setStepData(prev=>({...prev,...d}))}/>;
-      case 3: return <Step4Metrics data={stepData} onChange={d=>setStepData(prev=>({...prev,...d}))}/>;
-      case 4: return <Step5Grid data={stepData} onChange={d=>setStepData(prev=>({...prev,...d}))}/>;
-      case 5: return <Step6Diagnosis data={stepData} onChange={d=>setStepData(prev=>({...prev,...d}))}/>;
-      case 6: return <Step7Simulation data={stepData} onChange={d=>setStepData(prev=>({...prev,...d}))}/>;
-      default: return null;
-    }
-  };
-  
-  return (
-    <div className="w-full h-full flex flex-col bg-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shrink-0 shadow-sm z-20">
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 bg-ai-50 text-ai-600 rounded-lg">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-slate-900 tracking-tight">品类网格拆解插件</h1>
-            <p className="text-[10px] text-slate-400">扫地机 · 7步闭环流水线 Demo</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-1 rounded font-bold">策略同步: ERP策略中心</span>
-          <span className="text-[10px] bg-ai-50 text-ai-700 px-2 py-1 rounded font-bold">HITL 模式</span>
-        </div>
-      </div>
-      
-      {/* Pipeline Steps */}
-      <div className="bg-white border-b border-slate-100 px-6 py-3 shrink-0">
-        <div className="flex items-center gap-0">
-          {STEP_META.map((s,i)=>(
-            <React.Fragment key={s.id}>
-              <div className="flex flex-col items-center cursor-pointer" onClick={()=>goStep(i)}>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black transition-all step-dot ${stepColor(i)} ${i===currentStep?'active':''}`}>
-                  {completed.has(i) ? <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg> : s.id}
-                </div>
-                <span className={`text-[10px] mt-1 font-bold whitespace-nowrap ${i===currentStep?'text-brand-600':'text-slate-400'}`}>{s.title}</span>
-              </div>
-              {i < STEP_META.length - 1 && (
-                <div className={`flex-1 h-0.5 rounded-full mx-1 mt-[-12px] ${lineColor(i)}`}/>
-              )}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-      
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 mb-5">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-sm ${
-              STEP_META[currentStep].color==='brand'?'bg-brand-500':
-              STEP_META[currentStep].color==='ai'?'bg-ai-500':
-              STEP_META[currentStep].color==='emerald'?'bg-emerald-500':
-              STEP_META[currentStep].color==='amber'?'bg-amber-500':
-              STEP_META[currentStep].color==='blue'?'bg-blue-500':
-              STEP_META[currentStep].color==='indigo'?'bg-indigo-500':
-              'bg-rose-500'
-            }`}>
-              {currentStep + 1}
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">{STEP_META[currentStep].title}</h2>
-              <p className="text-xs text-slate-400">{STEP_META[currentStep].desc}</p>
-            </div>
-          </div>
-          <div className="fade-in" key={currentStep}>
-            {renderStep()}
-          </div>
-        </div>
-      </div>
-      
-      {/* Bottom Navigation */}
-      <div className="bg-white border-t border-slate-200 px-6 py-3 flex items-center justify-between shrink-0">
-        <button onClick={prevStep} disabled={currentStep===0} className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${currentStep===0?'bg-slate-100 text-slate-300 cursor-not-allowed':'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
-          ← 上一步
-        </button>
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <span>步骤 {currentStep+1} / 7</span>
-          <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-brand-500 rounded-full transition-all" style={{width:`${((completed.size)/7)*100}%`}}/>
-          </div>
-          <span>{completed.size}/7 完成</span>
-        </div>
-        {currentStep < 6 ? (
-          <button onClick={nextStep} className="px-5 py-2 text-xs font-bold rounded-lg bg-brand-500 text-white hover:bg-brand-600 shadow-md transition-all">
-            下一步 →
-          </button>
-        ) : (
-          <button onClick={()=>{setCompleted(new Set([0,1,2,3,4,5,6]))}} className="px-5 py-2 text-xs font-bold rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 shadow-md transition-all">
-            ✅ 完成并同步策略中心
-          </button>
-        )}
-      </div>
-      
-      {/* Chat Input */}
-      <div className="bg-white border-t border-slate-200 px-6 py-2.5 shrink-0">
-        <div className="max-w-4xl mx-auto flex items-center gap-2">
-          <div className="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
-            <svg className="w-4 h-4 text-ai-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            <input placeholder={`对${STEP_META[currentStep].title}步骤提问或给 Agent 指令...`} className="flex-1 bg-transparent text-sm outline-none ml-2 text-slate-700 placeholder:text-slate-300"/>
-          </div>
-          <button className="bg-ai-500 hover:bg-ai-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md">
-            发送
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const rootNode = document.getElementById('root');
+const rootNode=document.getElementById('root');
 if(rootNode) ReactDOM.createRoot(rootNode).render(<App/>);
 </script>
 </body>
