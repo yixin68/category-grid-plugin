@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>品类网格拆解插件 — 产品方案</title>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --surface2: #f0f1f5;
+    --border: #e2e4ea;
+    --text: #1a1d2e;
+    --text2: #6b7194;
+    --accent: #4f6ef7;
+    --accent-light: #eef1fe;
+    --green: #0d9f6e;
+    --green-light: #e6f9f1;
+    --red: #e04848;
+    --red-light: #fdeaec;
+    --yellow: #c9850a;
+    --yellow-light: #fef6e4;
+    --blue: #2b7de9;
+    --blue-light: #e8f1fd;
+    --orange: #d97016;
+    --orange-light: #fdf1e6;
+    --purple: #7c5cfc;
+    --purple-light: #f0ecfe;
+    --hitl: #c9850a;
+    --hitl-light: #fef6e4;
+    --erp: #4f6ef7;
+    --erp-light: #eef1fe;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== Left Sidebar Nav ===== */
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .side-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 200px;
+    z-index: 100;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .side-nav-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 12px;
+    flex: 1;
+  }
+  .nav-item {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.15s;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-item:hover, .nav-item.active {
+    color: var(--accent);
+    background: var(--accent-light);
+  }
+  .nav-brand {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+    padding: 0 14px 16px;
+    margin: 0 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  /* ===== Edit Toggle ===== */
+  .edit-toggle {
+    margin: 12px 12px 0;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .edit-toggle.editing {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  /* ===== Nav step-type tag ===== */
+  .nav-item { display: flex; align-items: center; gap: 4px; }
+  .nav-tags { margin-left: auto; display: inline-flex; gap: 3px; flex-shrink: 0; }
+  .nav-tag {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border-radius: 4px;
+    font-size: 10px; font-weight: 700; line-height: 1;
+  }
+  .nav-tag-data { background: var(--blue-light); color: var(--blue); }
+  .nav-tag-algo { background: var(--purple-light); color: var(--purple); }
+  .nav-legend {
+    margin: 10px 24px 0; padding-top: 10px; border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--text2); line-height: 1.9;
+  }
+  .nav-legend .lg-row { display: flex; align-items: center; gap: 6px; }
+
+  .content-area {
+    flex: 1;
+    margin-left: 200px;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ===== Hero ===== */
+  .hero {
+    text-align: center;
+    padding: 56px 0 44px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+  .hero-tag {
+    display: inline-block;
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    letter-spacing: 0.5px;
+  }
+  .hero h1 {
+    font-size: 36px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .hero p {
+    font-size: 17px;
+    color: var(--text2);
+    max-width: 660px;
+    margin: 0 auto;
+  }
+
+  /* ===== Section ===== */
+  .section {
+    margin-bottom: 56px;
+    scroll-margin-top: 20px;
+  }
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .section-label .num {
+    background: var(--accent);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+  .section h2 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+  .section h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 28px 0 14px;
+    color: var(--text);
+  }
+  .section p {
+    margin-bottom: 14px;
+    color: var(--text);
+    font-size: 15px;
+  }
+
+  /* ===== Pipeline ===== */
+  .pipeline { padding: 32px 0; }
+  .pipeline-track {
+    display: flex;
+    align-items: flex-start;
+    overflow-x: auto;
+    padding: 20px 0 44px;
+    gap: 0;
+  }
+  .pipeline-step {
+    flex: 0 0 auto;
+    width: 130px;
+    text-align: center;
+    position: relative;
+  }
+  .pipeline-step .step-circle {
+    width: 52px; height: 52px; border-radius: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 18px; color: #fff;
+    margin-bottom: 10px; position: relative; z-index: 2;
+  }
+  .pipeline-step .step-circle.s1 { background: linear-gradient(135deg, #4f6ef7, #3b5bdb); }
+  .pipeline-step .step-circle.s2 { background: linear-gradient(135deg, #7c5cfc, #5b3fd4); }
+  .pipeline-step .step-circle.s3 { background: linear-gradient(135deg, #0d9f6e, #087f58); }
+  .pipeline-step .step-circle.s4 { background: linear-gradient(135deg, #c9850a, #a06f08); }
+  .pipeline-step .step-circle.s5 { background: linear-gradient(135deg, #2b7de9, #1a65c9); }
+  .pipeline-step .step-circle.s6 { background: linear-gradient(135deg, #4f6ef7, #3b5bdb); }
+  .pipeline-step .step-circle.s7 { background: linear-gradient(135deg, #e04848, #c13a3a); }
+  .pipeline-step .step-circle.s8 { background: linear-gradient(135deg, #d97016, #b55c10); }
+  .pipeline-step .step-title {
+    font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px;
+  }
+  .pipeline-step .step-sub {
+    font-size: 12px; color: var(--text2); line-height: 1.4;
+  }
+  .pipeline-arrow {
+    flex: 0 0 32px;
+    display: flex; align-items: center; justify-content: center;
+    padding-top: 14px; color: var(--border); font-size: 18px;
+  }
+  .pipeline-branch {
+    position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%);
+    background: var(--yellow-light); border: 1px solid rgba(201,133,10,0.3);
+    border-radius: 6px; padding: 2px 10px;
+    font-size: 11px; color: var(--yellow); white-space: nowrap; font-weight: 600;
+  }
+  .pipeline-loop {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--accent-light); border: 1px dashed rgba(79,110,247,0.4);
+    border-radius: 10px; padding: 12px 18px; margin-top: 8px;
+    font-size: 13px; color: var(--accent); line-height: 1.5;
+  }
+  .pipeline-loop-arrow { font-size: 24px; font-weight: 700; flex-shrink: 0; }
+
+  /* ===== HITL ===== */
+  .hitl-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 48px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .hitl-section h2 { color: var(--hitl) !important; }
+
+  .hitl-timeline {
+    position: relative; padding-left: 32px; margin-top: 24px;
+  }
+  .hitl-timeline::before {
+    content: ''; position: absolute; left: 11px; top: 0; bottom: 0;
+    width: 2px; background: rgba(201,133,10,0.2);
+  }
+  .hitl-item {
+    position: relative; margin-bottom: 28px; padding-left: 28px;
+  }
+  .hitl-item::before {
+    content: ''; position: absolute; left: -28px; top: 8px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--hitl); border: 3px solid var(--bg); z-index: 2;
+  }
+  .hitl-item.hitl-optional::before {
+    background: transparent; border: 3px solid var(--hitl);
+  }
+  .hitl-trigger {
+    font-size: 11px; font-weight: 700; color: var(--hitl);
+    text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;
+  }
+  .hitl-action { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .hitl-desc { font-size: 14px; color: var(--text2); line-height: 1.6; }
+  .hitl-capture {
+    display: inline-block; margin-top: 8px;
+    background: var(--hitl-light); color: var(--hitl);
+    padding: 3px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;
+  }
+  .hitl-erp {
+    display: inline-block; margin-top: 4px; margin-left: 8px;
+    background: var(--erp-light); color: var(--erp);
+    padding: 3px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;
+  }
+
+  /* ===== Flywheel ===== */
+  .flywheel {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; flex-wrap: wrap; margin: 24px 0;
+  }
+  .flywheel-node {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px; text-align: center;
+    max-width: 140px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .flywheel-node .fn-icon { font-size: 22px; margin-bottom: 6px; }
+  .flywheel-node .fn-text { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; }
+  .flywheel-arrow { color: var(--hitl); font-size: 18px; font-weight: 700; }
+
+  /* ===== Strategy Cards ===== */
+  .strategy-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px; margin: 20px 0;
+  }
+  .strategy-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+    transition: border-color 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .strategy-card:hover { border-color: var(--accent); }
+  .strategy-card .sc-type {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 6px;
+  }
+  .strategy-card .sc-name {
+    font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 10px;
+  }
+  .strategy-card .sc-row {
+    display: flex; justify-content: space-between;
+    font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--surface2);
+  }
+  .strategy-card .sc-row:last-child { border: none; }
+  .strategy-card .sc-row .label { color: var(--text2); }
+  .strategy-card .sc-row .value { color: var(--text); font-weight: 500; }
+
+  /* ===== Table ===== */
+  .spec-table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;
+    background: var(--surface); border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .spec-table th {
+    text-align: left; padding: 10px 14px; background: var(--surface2);
+    color: var(--text2); font-weight: 600; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
+  }
+  .spec-table td {
+    padding: 10px 14px; border-bottom: 1px solid var(--surface2); color: var(--text);
+  }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .spec-table tr:hover td { background: var(--accent-light); }
+
+  /* ===== Code block ===== */
+  .code-block {
+    background: #1e2030; border: 1px solid #2e3148; border-radius: 10px;
+    padding: 20px 24px; font-family: 'SF Mono','Fira Code','JetBrains Mono',monospace;
+    font-size: 13px; line-height: 1.6; overflow-x: auto; margin: 16px 0; color: #b0b4cc;
+  }
+  .code-block .key { color: #7c9df7; }
+  .code-block .str { color: #6dd9a5; }
+  .code-block .num { color: #f0a968; }
+  .code-block .comment { color: #5a5f7a; }
+
+  /* ===== Mock UI ===== */
+  .mock-ui {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px 24px; margin: 16px 0; font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .mock-ui .mu-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+  .mock-ui .mu-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; color: var(--text); font-size: 13px;
+  }
+  .mock-ui .mu-row .mu-label { color: var(--text2); min-width: 80px; }
+  .mock-ui .mu-row .mu-value { color: var(--text); font-weight: 500; }
+  .mock-ui .mu-check { color: var(--green); }
+  .mock-ui .mu-uncheck { color: var(--text2); }
+  .mock-ui .mu-divider { border-top: 1px solid var(--border); margin: 10px 0; }
+  .mock-ui .mu-action {
+    display: inline-block; padding: 6px 16px; border-radius: 6px;
+    font-size: 13px; font-weight: 500; cursor: default; margin-top: 8px; margin-right: 8px;
+  }
+  .mock-ui .mu-btn-primary { background: var(--accent); color: #fff; }
+  .mock-ui .mu-btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+  .mock-ui .mu-tag {
+    display: inline-block; padding: 2px 10px; border-radius: 4px;
+    font-size: 12px; font-weight: 500; margin-right: 4px;
+  }
+  .mock-ui .mu-tag-blue { background: var(--blue-light); color: var(--blue); }
+  .mock-ui .mu-tag-green { background: var(--green-light); color: var(--green); }
+  .mock-ui .mu-tag-red { background: var(--red-light); color: var(--red); }
+  .mock-ui .mu-tag-yellow { background: var(--yellow-light); color: var(--yellow); }
+  .mock-ui .mu-tag-purple { background: var(--purple-light); color: var(--purple); }
+  .mock-ui .mu-hint {
+    font-size: 12px; color: var(--text2); margin-top: 10px;
+    padding: 8px 12px; background: var(--accent-light); border-radius: 6px; line-height: 1.5;
+  }
+
+  /* ===== Example Input ===== */
+  .example-input {
+    background: #1e2030; border: 1px solid #2e3148; border-radius: 10px;
+    padding: 16px 20px; margin: 12px 0; font-size: 14px; line-height: 1.8;
+    color: #d4d8f0; font-family: 'SF Mono','Fira Code',monospace;
+  }
+  .example-input .ei-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: #7c9df7; margin-bottom: 6px;
+  }
+  .example-input .ei-text { color: #e4e6f0; }
+  .example-input .ei-comment { color: #5a5f7a; }
+
+  /* ===== Grid visual ===== */
+  .grid-visual { display: inline-grid; gap: 3px; margin: 16px 0; font-size: 12px; }
+  .grid-cell {
+    padding: 10px 14px; border-radius: 6px; text-align: center;
+    min-width: 90px; font-weight: 500;
+  }
+  .grid-cell.gc-green { background: var(--green-light); color: var(--green); border: 1px solid rgba(13,159,110,0.3); }
+  .grid-cell.gc-red { background: var(--red-light); color: var(--red); border: 1px solid rgba(224,72,72,0.3); }
+  .grid-cell.gc-yellow { background: var(--yellow-light); color: var(--yellow); border: 1px solid rgba(201,133,10,0.3); }
+  .grid-cell.gc-blue { background: var(--blue-light); color: var(--blue); border: 1px solid rgba(43,125,233,0.3); }
+  .grid-cell.gc-orange { background: var(--orange-light); color: var(--orange); border: 1px solid rgba(217,112,22,0.3); }
+  .grid-cell.gc-default { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+
+  /* ===== Insight block ===== */
+  .insight-block {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0;
+    padding: 20px 24px; margin: 16px 0; font-size: 14px; line-height: 1.8;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .insight-block .ib-title { font-weight: 600; color: var(--text); margin-bottom: 10px; font-size: 15px; }
+  .insight-block .ib-item { padding: 4px 0; }
+  .insight-block .ib-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 8px; vertical-align: middle;
+  }
+
+  /* ===== Simulation ===== */
+  .sim-result {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px 24px; margin: 16px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .sim-result .sr-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+  }
+  .sim-result .sr-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .sim-result .sr-confidence { font-size: 12px; padding: 3px 10px; border-radius: 4px; }
+  .sim-result .sr-row {
+    display: flex; justify-content: space-between; padding: 6px 0;
+    font-size: 14px; border-bottom: 1px solid var(--surface2);
+  }
+  .sim-result .sr-row:last-child { border: none; }
+  .sim-result .sr-row .sr-label { color: var(--text2); }
+  .sim-result .sr-row .sr-val { color: var(--text); font-weight: 500; }
+  .sim-result .sr-row .sr-val.positive { color: var(--green); }
+  .sim-result .sr-assumptions {
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--text2); line-height: 1.6;
+  }
+
+  /* ===== Plan timeline ===== */
+  .plan-timeline { position: relative; margin: 20px 0; }
+  .plan-week { display: flex; gap: 24px; margin-bottom: 28px; }
+  .plan-week-label { flex: 0 0 80px; text-align: center; }
+  .plan-week-label .pwl-num {
+    background: var(--accent); color: #fff; width: 36px; height: 36px;
+    border-radius: 10px; display: inline-flex; align-items: center;
+    justify-content: center; font-weight: 700; font-size: 16px; margin-bottom: 4px;
+  }
+  .plan-week-label .pwl-text { font-size: 12px; color: var(--text2); font-weight: 500; }
+  .plan-days { flex: 1; display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; }
+  .plan-day {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; min-height: 80px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .plan-day .pd-num { font-size: 11px; color: var(--text2); font-weight: 600; margin-bottom: 6px; }
+  .plan-day .pd-content { font-size: 13px; color: var(--text); line-height: 1.4; }
+
+  /* ===== Role-based plan table ===== */
+  .role-table { margin: 16px 0; }
+  .role-row {
+    display: grid; grid-template-columns: 100px 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+  .role-row.header {
+    background: var(--surface2); font-weight: 600; font-size: 12px;
+    color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .role-cell {
+    padding: 10px 14px; font-size: 13px; color: var(--text);
+  }
+  .role-cell.role-label {
+    font-weight: 600; display: flex; align-items: center; gap: 6px;
+  }
+  .role-dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+  }
+
+  /* ===== Badge ===== */
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600; margin-right: 4px;
+  }
+  .badge-p0 { background: var(--red-light); color: var(--red); }
+  .badge-p1 { background: var(--yellow-light); color: var(--yellow); }
+  .badge-p2 { background: var(--blue-light); color: var(--blue); }
+
+  /* ===== Component Type Badge ===== */
+  .comp-type {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 700; margin-right: 4px;
+  }
+  .comp-skill { background: var(--green-light); color: var(--green); }
+  .comp-model { background: var(--purple-light); color: var(--purple); }
+  .comp-api { background: var(--blue-light); color: var(--blue); }
+  .comp-workflow { background: var(--orange-light); color: var(--orange); }
+  .comp-tool { background: var(--yellow-light); color: var(--yellow); }
+
+  /* ===== Callout ===== */
+  .callout {
+    padding: 16px 20px; border-radius: 10px; margin: 16px 0; font-size: 14px; line-height: 1.6;
+  }
+  .callout-principle {
+    background: var(--accent-light); border: 1px solid rgba(79,110,247,0.15);
+    border-left: 3px solid var(--accent);
+  }
+  .callout-warning {
+    background: var(--red-light); border: 1px solid rgba(224,72,72,0.15);
+    border-left: 3px solid var(--red);
+  }
+  .callout-erp {
+    background: var(--erp-light); border: 1px solid rgba(79,110,247,0.15);
+    border-left: 3px solid var(--erp);
+  }
+
+  .text-accent { color: var(--accent); }
+  .text-green { color: var(--green); }
+  .text-red { color: var(--red); }
+  .text-yellow { color: var(--yellow); }
+  .text-hitl { color: var(--hitl); }
+  .fw-600 { font-weight: 600; }
+
+  /* ===== Editable ===== */
+  [contenteditable="true"] {
+    outline: 2px dashed var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+    min-height: 1em;
+  }
+  [contenteditable="true"]:focus {
+    outline: 2px solid var(--accent);
+    background: rgba(79,110,247,0.04);
+  }
+
+  /* ===== ERP flow arrow ===== */
+  .erp-flow {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; margin: 20px 0; flex-wrap: wrap;
+  }
+  .erp-flow-node {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 18px; text-align: center;
+    font-size: 13px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .erp-flow-node.erp-target {
+    background: var(--erp-light); border-color: var(--accent);
+    font-weight: 600; color: var(--accent);
+  }
+  .erp-flow-arrow { color: var(--accent); font-size: 18px; font-weight: 700; }
+
+  @media (max-width: 768px) {
+    .side-nav {
+      width: 56px;
+      padding: 12px 0;
+    }
+    .nav-brand {
+      font-size: 0;
+      padding: 0 0 12px;
+      text-align: center;
+    }
+    .nav-brand::first-letter {
+      font-size: 18px;
+    }
+    .side-nav-inner {
+      padding: 0 6px;
+    }
+    .nav-item {
+      display: block;
+      font-size: 0;
+      padding: 8px;
+      text-align: center;
+    }
+    .nav-tags, .nav-legend { display: none; }
+    .nav-item::first-letter {
+      font-size: 14px;
+    }
+    .edit-toggle {
+      margin: 8px 6px 0;
+      font-size: 0;
+      padding: 7px;
+    }
+    .edit-toggle::first-letter {
+      font-size: 12px;
+    }
+    .content-area {
+      margin-left: 56px;
+    }
+    .hero h1 { font-size: 26px; }
+    .strategy-grid { grid-template-columns: 1fr; }
+    .plan-days { grid-template-columns: repeat(3,1fr); }
+    .flywheel { flex-direction: column; }
+    .flywheel-arrow { transform: rotate(90deg); }
+    .role-row { grid-template-columns: 80px 1fr 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Left Sidebar Navigation ===== -->
+<div class="layout">
+<nav class="side-nav" id="topNav">
+  <div class="nav-brand">品类网格插件</div>
+  <div class="side-nav-inner">
+    <a class="nav-item" href="#flow">工作流</a>
+    <a class="nav-item" href="#step1">货盘圈选<span class="nav-tags"><span class="nav-tag nav-tag-data" title="数据规则">数</span></span></a>
+    <a class="nav-item" href="#step2">属性推荐<span class="nav-tags"><span class="nav-tag nav-tag-algo" title="算法能力">算</span></span></a>
+    <a class="nav-item" href="#step4">指标选择<span class="nav-tags"><span class="nav-tag nav-tag-data" title="数据规则">数</span></span></a>
+    <a class="nav-item" href="#step5">网格绘制调优<span class="nav-tags"><span class="nav-tag nav-tag-data" title="数据规则">数</span><span class="nav-tag nav-tag-algo" title="算法能力">算</span></span></a>
+    <a class="nav-item" href="#step3">属性提取与归一<span class="nav-tags"><span class="nav-tag nav-tag-algo" title="算法能力">算</span></span></a>
+    <a class="nav-item" href="#step7">网格诊断<span class="nav-tags"><span class="nav-tag nav-tag-data" title="数据规则">数</span><span class="nav-tag nav-tag-algo" title="算法能力">算</span></span></a>
+    <a class="nav-item" href="#strategy">策略沉淀</a>
+    <a class="nav-item" href="#components">组件架构</a>
+    <a class="nav-item" href="#orchestration">原子能力与编排</a>
+    <a class="nav-item" href="#plan">准备工作 & 待办</a>
+  </div>
+  <div class="nav-legend">
+    <div class="lg-row"><span class="nav-tag nav-tag-data">数</span>数据规则驱动</div>
+    <div class="lg-row"><span class="nav-tag nav-tag-algo">算</span>算法能力驱动</div>
+  </div>
+  <button class="edit-toggle" id="editToggle" onclick="toggleEdit()">编辑</button>
+</nav>
+
+<div class="content-area">
+<div class="container">
+
+<!-- ===== Hero ===== -->
+<div class="hero">
+  <div class="hero-tag">Plugin Design Spec v2.0</div>
+  <h1>品类网格拆解插件</h1>
+  <p>输入品类与策略意图，输出带诊断标注的机会网格与洞察结论。<br>6步循环工作流 + ERP策略沉淀，每个环节顺手捕获偏好，让每次操作都沉淀为组织资产。</p>
+</div>
+
+<!-- ===== 1. 完整工作流 ===== -->
+<div class="section" id="flow">
+  <div class="section-label"><span class="num">01</span> 完整工作流</div>
+  <h2>6步 Pipeline（一个可迭代的循环）</h2>
+  <p>用户从"我关心某个品类"走到"我知道该打哪个格子、机会在哪"，经过6个步骤。<strong>这不是一条单向流水线，而是一个循环</strong>——诊断后发现维度不对、归一太粗，可随时回到任意上游步骤重绘，直到网格"可用"为止。每个环节都有人机交互的设计——在用户本来就要做决策的瞬间，系统主动提醒并顺手捕获偏好，所有策略碎片统一沉淀入ERP。</p>
+
+  <div class="callout callout-principle" style="margin-bottom: 0;">
+    <strong>进入方式（前置）：</strong>从插件中心选择「品类网格拆解」→ 先确定 <span class="text-accent fw-600">部门（单选）</span> + <span class="text-accent fw-600">品类（多选）</span> + <span class="text-accent fw-600">时间维度</span> → 再进入下面的 Step 1 货盘圈选。
+  </div>
+
+  <div class="pipeline">
+    <div class="pipeline-track">
+      <div class="pipeline-step">
+        <div class="step-circle s1">1</div>
+        <div class="step-title">货盘圈选</div>
+        <div class="step-sub">渠道/品牌/价格<br>关键词·指标筛选</div>
+        <div class="pipeline-branch" style="background: var(--accent-light); border-color: rgba(79,110,247,0.3); color: var(--accent);">策略捕获</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="step-circle s2">2</div>
+        <div class="step-title">属性推荐</div>
+        <div class="step-sub">策略+趋势<br>决策因素融合</div>
+        <div class="pipeline-branch" style="background: var(--accent-light); border-color: rgba(79,110,247,0.3); color: var(--accent);">策略捕获</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="step-circle s4">3</div>
+        <div class="step-title">指标选择</div>
+        <div class="step-sub">基础+策略<br>扩展指标</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="step-circle s5">4</div>
+        <div class="step-title">网格绘制与调优</div>
+        <div class="step-sub">初绘+预检<br>合并/标注/重绘</div>
+        <div class="pipeline-branch" style="background: var(--accent-light); border-color: rgba(79,110,247,0.3); color: var(--accent);">策略捕获</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="step-circle s3">5</div>
+        <div class="step-title">属性提取与归一</div>
+        <div class="step-sub">画格后校验挂载<br>合并触发归一</div>
+        <div class="pipeline-branch" style="background: var(--accent-light); border-color: rgba(79,110,247,0.3); color: var(--accent);">策略捕获</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <div class="step-circle s6">6</div>
+        <div class="step-title">网格诊断</div>
+        <div class="step-sub">蓝海/红海<br>洞察结论</div>
+        <div class="pipeline-branch" style="background: var(--accent-light); border-color: rgba(79,110,247,0.3); color: var(--accent);">策略捕获</div>
+      </div>
+    </div>
+    <div class="pipeline-loop">
+      <span class="pipeline-loop-arrow">↺</span>
+      <span>关键：<strong>属性提取与归一放在"网格画出来之后"</strong>——先按维度画格，再逐格校验商品属性挂载、对过细属性值触发归一。循环：诊断后若发现维度选错或归一过粗，可回到任意上游步骤重绘，直至网格可用。</span>
+    </div>
+  </div>
+
+  <h3>两种调用方式</h3>
+  <div class="erp-flow">
+    <div class="erp-flow-node">插件中心 · 选「品类网格拆解」</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node">选范围<br>部门/品类/时间</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node erp-target">进入网格配置<br>（选拆解方式）</div>
+  </div>
+  <div style="display:flex; gap:16px; flex-wrap:wrap; margin:12px 0;">
+    <div class="callout callout-principle" style="flex:1; min-width:280px; margin:0;">
+      <strong>模式 A · 直接调用（交互式）</strong><br>
+      按 Step 1~6 一步步操作：货盘圈选 → 属性推荐 → 指标选择 → 网格绘制与调优 → 属性提取与归一 → 网格诊断 → 生成洞察。<br>
+      <span class="text-accent fw-600">任意步骤都可返回修改</span>，改后下游实时重算；"开始绘制"后才拉出可视化区。
+    </div>
+    <div class="callout callout-erp" style="flex:1; min-width:280px; margin:0;">
+      <strong>模式 B · 静默跑（模板 / 推荐）</strong><br>
+      选用<span class="text-accent fw-600">经验模板</span>（无匹配则由 AI 推荐配置）→ 自动套用前序配置 → 直接跑出网格 → 生成洞察。<br>
+      适合新人一键复用资深经验，或批量快速出结果。
+    </div>
+  </div>
+  <div class="erp-flow">
+    <div class="erp-flow-node">机会网格</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node">网格诊断 · 洞察结论</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node">存为分析模板</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node erp-target">ERP 策略中心 · 沉淀 &amp; 复用</div>
+  </div>
+
+  <div class="callout callout-principle">
+    <strong>边界原则：</strong>这个插件只回答一个问题——<span class="text-accent fw-600">"这个品类拆成什么样，哪些格子值得关注，机会在哪"</span>，到此为止。归因深挖、选品执行、策略制定不在范围内。
+  </div>
+</div>
+
+<!-- ===== 4. 货盘圈选 ===== -->
+<div class="section" id="step1">
+  <div class="section-label"><span class="num">02</span> Step 1</div>
+  <h2>货盘圈选</h2>
+  <p><strong>圈什么货，决定了网格看到什么世界。</strong>这是链路起点。以下条件<strong>均为可选、可任意组合</strong>（命中商品取并集），用来精确控制分析范围。</p>
+
+  <table class="spec-table">
+    <thead><tr><th>可配置条件</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">分析渠道</td><td>选择纳入分析的渠道（京东自营 / 京东POP / 天猫 / 抖音…）</td></tr>
+      <tr><td class="fw-600">店铺类型 / 经营模式 / 品牌类型</td><td>按店铺类型（旗舰店/专卖店…）、经营模式（自营/POP/厂直…）、品牌类型（头部/高潜/白牌）过滤</td></tr>
+      <tr><td class="fw-600">标准品牌</td><td>指定纳入的标准品牌</td></tr>
+      <tr><td class="fw-600">价格带</td><td>选择纳入的价格带区间（可多选）</td></tr>
+      <tr><td class="fw-600">标题关键词</td><td>按商品标题搜索，支持 <b>AND / OR / NOT</b> 逻辑运算符</td></tr>
+      <tr><td class="fw-600">指标筛选</td><td>圈选 <b>Top N 款</b>，或按指标（GMV / 销量 / 增速…）输入具体<b>数值范围</b></td></tr>
+    </tbody>
+  </table>
+
+  <div class="mock-ui">
+    <div class="mu-title">货盘范围</div>
+    <div class="mu-divider"></div>
+    <div class="mu-row"><span class="mu-label">品类</span><span class="mu-value">冰箱</span></div>
+    <div class="mu-row"><span class="mu-label">+</span><span class="mu-value">Top 500（按GMV排序）</span></div>
+    <div class="mu-row"><span class="mu-label">+</span><span class="mu-value">关键词："迷你"</span></div>
+    <div class="mu-row"><span class="mu-label">+</span><span class="mu-value">条件：品牌=海尔/美的/容声，价格1K-5K</span></div>
+    <div class="mu-row"><span class="mu-label">-</span><span class="mu-value">排除：商用冰箱</span></div>
+    <div class="mu-divider"></div>
+    <div class="mu-row"><span class="mu-label">命中商品</span><span class="mu-value">1,247 个</span></div>
+    <div class="mu-row"><span class="mu-label">GMV占比</span><span class="mu-value">品类总量的 82%</span></div>
+    <div style="margin-top: 10px;">
+      <span class="mu-action mu-btn-ghost">调整范围</span>
+      <span class="mu-action mu-btn-primary">确认，开始拆解</span>
+    </div>
+    <div class="mu-divider" style="margin-top: 14px;"></div>
+    <div style="background: var(--hitl-light); border-radius: 6px; padding: 10px 14px; margin-top: 8px; border-left: 3px solid var(--hitl);">
+      <div style="font-size: 12px; font-weight: 600; color: var(--hitl); margin-bottom: 6px;">🤖 Agent 提示</div>
+      <div style="font-size: 13px; color: var(--text); margin-bottom: 8px;">货盘范围已配置完成，是否保存为分析模板？下次分析同类品类可直接使用该模板。</div>
+      <div style="display: flex; gap: 8px;">
+        <span class="mu-action mu-btn-primary" style="font-size: 12px;">保存为模板 → 同步至ERP</span>
+        <span class="mu-action mu-btn-ghost" style="font-size: 12px;">仅本次使用</span>
+      </div>
+      <div style="margin-top: 6px; font-size: 11px; color: var(--hitl);">沉淀为 scope_template → ERP 策略中心</div>
+    </div>
+  </div>
+
+
+</div>
+
+<!-- ===== 5. 属性匹配与推荐 ===== -->
+<div class="section" id="step2">
+  <div class="section-label"><span class="num">03</span> Step 2</div>
+  <h2>属性匹配与推荐</h2>
+  <p>根据<strong>策略意图 + 站外趋势 + 用户决策因素</strong>三路信号融合，智能推荐维度。</p>
+
+  <table class="spec-table">
+    <thead><tr><th>信号来源</th><th>含义</th><th>权重</th><th>示例</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">用户决策因素</td><td>用户关注的业务视角</td><td><span class="text-accent fw-600">50%</span></td><td>"我主要看价格带和场景"</td></tr>
+      <tr><td class="fw-600">站外热搜趋势</td><td>消费者关注点</td><td><span class="text-accent fw-600">30%</span></td><td>抖音热搜"母婴冰箱"→场景维度↑</td></tr>
+      <tr><td class="fw-600">策略模板库（ERP）</td><td>已沉淀的策略配置</td><td><span class="text-accent fw-600">20%</span></td><td>价格带聚焦策略→优先价格段维度</td></tr>
+    </tbody>
+  </table>
+
+  <div class="mock-ui">
+    <div class="mu-title">推荐拆解维度（点击调整）</div>
+    <div class="mu-row"><span class="mu-check">✔</span> 价格段 <span class="mu-tag mu-tag-blue">策略偏好</span></div>
+    <div class="mu-row"><span class="mu-check">✔</span> 使用场景 <span class="mu-tag mu-tag-purple">抖音热搜"母婴冰箱"强关联</span></div>
+    <div class="mu-row"><span class="mu-check">✔</span> 保鲜技术 <span class="mu-tag mu-tag-blue">价格带聚焦策略推荐</span></div>
+    <div class="mu-row"><span class="mu-uncheck">○</span> 容量</div>
+    <div class="mu-row"><span class="mu-uncheck">○</span> 能效等级</div>
+    <div class="mu-row"><span class="mu-uncheck">○</span> 品牌</div>
+    <div class="mu-hint">选择了"场景"而非"容量"：站外趋势显示消费者按场景搜索冰箱的量同比+200%</div>
+    <div style="margin-top: 8px;">
+      <span class="mu-action mu-btn-ghost">自定义维度</span>
+      <span class="mu-action mu-btn-primary">用这3个维度拆解</span>
+    </div>
+    <div class="mu-divider" style="margin-top: 14px;"></div>
+    <div style="background: var(--hitl-light); border-radius: 6px; padding: 10px 14px; margin-top: 8px; border-left: 3px solid var(--hitl);">
+      <div style="font-size: 12px; font-weight: 600; color: var(--hitl); margin-bottom: 6px;">🤖 Agent 识别到维度偏好变更</div>
+      <div style="font-size: 13px; color: var(--text); margin-bottom: 8px;">你把"能效"换成了"场景"，改维度 = 你有自己看品类的角度。要存为你的习惯吗？</div>
+      <div style="display: flex; gap: 8px;">
+        <span class="mu-action mu-btn-primary" style="font-size: 12px;">存为我的习惯 → 同步至ERP</span>
+        <span class="mu-action mu-btn-ghost" style="font-size: 12px;">仅本次使用</span>
+      </div>
+      <div style="margin-top: 6px; font-size: 11px; color: var(--hitl);">沉淀为 dimension_preference → ERP 策略中心</div>
+    </div>
+  </div>
+
+
+</div>
+
+<!-- ===== 7. 指标选择 ===== -->
+<div class="section" id="step4">
+  <div class="section-label"><span class="num">04</span> Step 3</div>
+  <h2>指标选择</h2>
+  <p><strong>指标是网格的分析维度之一，应在绘制网格之前确定。</strong>选什么指标，决定了网格用来衡量什么、诊断什么。不同策略关注不同指标。</p>
+
+  <h3>基础指标（必选）</h3>
+  <table class="spec-table">
+    <thead><tr><th>指标</th><th>公式</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">GMV规模</td><td>格内GMV总和</td><td></td></tr>
+      <tr><td class="fw-600">增速</td><td>(本期-上期)/上期</td><td>同比/环比可选</td></tr>
+      <tr><td class="fw-600">市占</td><td>格内GMV/货盘总GMV</td><td>相对占比</td></tr>
+      <tr><td class="fw-600">均价</td><td>格内GMV/格内销量</td><td>价格水位</td></tr>
+      <tr><td class="fw-600">商品数</td><td>格内SKU数</td><td>供给密度</td></tr>
+      <tr><td class="fw-600">动销率</td><td>有销量SKU/总SKU</td><td>供需健康度</td></tr>
+    </tbody>
+  </table>
+
+  <h3>扩展指标服务（按需勾选）</h3>
+  <table class="spec-table">
+    <thead><tr><th>指标</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">搜索-供给缺口</td><td>识别搜索高、供给少的蓝海</td></tr>
+      <tr><td class="fw-600">头部商品集中度</td><td>判断竞争格局与红海程度</td></tr>
+      <tr><td class="fw-600">转化率 / 复购率 / 退货率</td><td>评估格子的经营健康度</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== 8. 网格绘制与调优 ===== -->
+<div class="section" id="step5">
+  <div class="section-label"><span class="num">05</span> Step 4</div>
+  <h2>网格绘制与调优</h2>
+  <p>按选定维度和归一后的属性值交叉生成网格，商品归格，标记置信度。初绘后系统<strong>自动预检</strong>并给出优化建议，用户通过结构化控件完成调优——合并碎片、归组属性值、标注重点，每步有明确引导。</p>
+  <div class="callout callout-principle" style="margin-bottom: 0;"><strong>行/列维度</strong>可在网格上快速切换：价格带 / 品牌类型 / 功能类型，也可选 <span class="text-accent fw-600">品类</span>（需选一级 / 二级 / 三级）；填充指标可切换 增速 / 市占 / GMV。</div>
+
+  <h3>初绘后自动预检</h3>
+  <table class="spec-table">
+    <thead><tr><th>检查项</th><th>阈值</th><th>处理</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">空格率</td><td>>30%</td><td>提示维度过细，建议合并</td></tr>
+      <tr><td class="fw-600">最大格占比</td><td>单格>50%商品</td><td>提示维度值过粗，建议拆分</td></tr>
+      <tr><td class="fw-600">碎片格</td><td>单格<2个商品</td><td>提示该区域可合并</td></tr>
+    </tbody>
+  </table>
+
+  <h3>5种调优操作</h3>
+  <table class="spec-table">
+    <thead><tr><th>操作</th><th>交互</th><th>沉淀策略（→ ERP）</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">A. 属性选择调整</td><td>增减维度，重新绘制</td><td>dimension_preference</td></tr>
+      <tr><td class="fw-600">B. 合并属性值</td><td>拖拽选中多个值 → 归为一组 → 命名</td><td>merge_habit</td></tr>
+      <tr><td class="fw-600">C. 网格合并</td><td>选中多个小格 → 合并为一个区域</td><td>merge_habit</td></tr>
+      <tr><td class="fw-600">D. 替换指标</td><td>切换默认指标集</td><td>metric_preference</td></tr>
+      <tr><td class="fw-600">E. 标注重点网格</td><td>手动标注+备注</td><td>focus_override</td></tr>
+    </tbody>
+  </table>
+
+  <h3>引导式调优交互</h3>
+  <p>不用对话，不用记指令。系统<strong>主动推送建议</strong>，用户通过结构化控件操作——点击、拖拽、勾选，每步有明确引导。</p>
+
+  <div class="callout callout-principle">
+    <strong>设计原则：</strong>调优只针对当前已画出来的网格做优化——合并碎片、归组属性值、标注重点。不再引入新维度或新数据，避免"调着调着回到上游"。
+  </div>
+
+  <h4 style="font-size: 15px; font-weight: 600; margin: 20px 0 10px; color: var(--accent);">① 智能建议卡片 — 针对当前网格的优化建议，一键采纳</h4>
+  <div class="mock-ui">
+    <div class="mu-title">网格优化建议</div>
+    <div class="mu-divider"></div>
+    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; background: var(--yellow-light);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span class="mu-tag mu-tag-yellow">碎片合并</span>
+          <span style="font-size: 13px; font-weight: 500;">1K以下+租房+基础保鲜 与 1K以下+租房+无保鲜 合并为"低价租房格"</span>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <span class="mu-action mu-btn-primary" style="margin: 0; padding: 4px 12px; font-size: 12px;">采纳</span>
+          <span class="mu-action mu-btn-ghost" style="margin: 0; padding: 4px 12px; font-size: 12px;">忽略</span>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--text2); margin-top: 4px;">原因：两个格子商品数均<3，属性值高度相似</div>
+    </div>
+    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; background: var(--yellow-light);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span class="mu-tag mu-tag-yellow">碎片合并</span>
+          <span style="font-size: 13px; font-weight: 500;">3K以上+家用+净味 与 3K以上+家用+除菌 合并为"高端家用健康格"</span>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <span class="mu-action mu-btn-primary" style="margin: 0; padding: 4px 12px; font-size: 12px;">采纳</span>
+          <span class="mu-action mu-btn-ghost" style="margin: 0; padding: 4px 12px; font-size: 12px;">忽略</span>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--text2); margin-top: 4px;">原因：用户决策通常不分这两种技术，合并后格子更有统计意义</div>
+    </div>
+  </div>
+
+  <h4 style="font-size: 15px; font-weight: 600; margin: 20px 0 10px; color: var(--accent);">② 属性值归组 — 拖拽聚合，即时预览</h4>
+  <div class="mock-ui">
+    <div class="mu-title">材质属性值归组</div>
+    <div class="mu-divider"></div>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+      <div style="border: 1px solid var(--green); border-radius: 8px; padding: 10px 14px; background: var(--green-light); min-width: 120px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--green); margin-bottom: 6px;">棉麻（核心）</div>
+        <div style="font-size: 13px; color: var(--text);">棉</div>
+        <div style="font-size: 13px; color: var(--text);">亚麻</div>
+      </div>
+      <div style="border: 1px solid var(--purple); border-radius: 8px; padding: 10px 14px; background: var(--purple-light); min-width: 120px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--purple); margin-bottom: 6px;">化纤（核心）</div>
+        <div style="font-size: 13px; color: var(--text);">聚酯纤维</div>
+        <div style="font-size: 13px; color: var(--text);">锦纶</div>
+      </div>
+      <div style="border: 1px dashed var(--border); border-radius: 8px; padding: 10px 14px; background: var(--surface2); min-width: 120px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px;">其他</div>
+        <div style="font-size: 13px; color: var(--text2);">天丝 ×</div>
+        <div style="font-size: 13px; color: var(--text2);">莫代尔 ×</div>
+        <div style="font-size: 11px; color: var(--accent); margin-top: 4px;">拖拽到上方归组 ↑</div>
+      </div>
+    </div>
+  </div>
+
+  <h4 style="font-size: 15px; font-weight: 600; margin: 20px 0 10px; color: var(--accent);">③ 指标选择 — 下拉切换 + 策略联动</h4>
+  <div class="mock-ui">
+    <div class="mu-title">网格填充指标</div>
+    <div class="mu-divider"></div>
+    <div class="mu-row">
+      <span class="mu-label">主指标</span>
+      <span style="border: 1px solid var(--accent); border-radius: 6px; padding: 4px 12px; font-size: 13px; background: var(--accent-light); color: var(--accent); font-weight: 500;">搜索-供给缺口 ▾</span>
+    </div>
+    <div class="mu-row">
+      <span class="mu-label">辅指标</span>
+      <span style="border: 1px solid var(--border); border-radius: 6px; padding: 4px 12px; font-size: 13px; color: var(--text2);">增速 ▾</span>
+      <span style="border: 1px solid var(--border); border-radius: 6px; padding: 4px 12px; font-size: 13px; color: var(--text2);">市占 ▾</span>
+    </div>
+    <div class="mu-hint">当前策略"供给空白"推荐指标组合：主指标=搜索-供给缺口，辅指标=空格率+增速</div>
+  </div>
+
+  <h4 style="font-size: 15px; font-weight: 600; margin: 20px 0 10px; color: var(--accent);">④ 重点标注 — 点击格子即标注</h4>
+  <div class="mock-ui">
+    <div class="mu-title">点击任意格子标注重点</div>
+    <div class="grid-visual" style="grid-template-columns: repeat(3, 1fr); margin-top: 8px;">
+      <div class="grid-cell gc-default">A1<br><small>3品</small></div>
+      <div class="grid-cell gc-default">A2<br><small>2品</small></div>
+      <div class="grid-cell gc-default">A3<br><small>8品</small></div>
+      <div class="grid-cell gc-yellow">B1 ⭐<br><small>5品 · 已标注</small></div>
+      <div class="grid-cell gc-default">B2<br><small>1品</small></div>
+      <div class="grid-cell gc-yellow">B3 ⭐<br><small>12品 · 已标注</small></div>
+    </div>
+    <div class="mu-hint" style="margin-top: 8px;">已标注2个格子为重点关注 → 沉淀为 focus_override → ERP策略中心</div>
+  </div>
+
+  <h3>合并属性值示意</h3>
+  <div class="code-block">
+<span class="comment"># 原始属性值：过细</span>
+50L, 80L, 100L, 120L, 150L, 180L, 200L, 230L, 260L, 300L+
+
+<span class="comment"># 合并后：有业务含义的区间</span>
+<span class="str">小型(≤100L)</span> | <span class="str">中型(100-200L)</span> | <span class="str">大型(200-300L)</span> | <span class="str">超大(300L+)</span>
+  </div>
+
+  <h3>网格合并示意</h3>
+  <div style="display: flex; gap: 20px; flex-wrap: wrap; margin: 16px 0;">
+    <div>
+      <div style="font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 600;">合并前（6格）</div>
+      <div class="grid-visual" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="grid-cell gc-default">A1<br><small>3品</small></div>
+        <div class="grid-cell gc-default">A2<br><small>2品</small></div>
+        <div class="grid-cell gc-default">A3<br><small>8品</small></div>
+        <div class="grid-cell gc-default">B1<br><small>5品</small></div>
+        <div class="grid-cell gc-default">B2<br><small>1品</small></div>
+        <div class="grid-cell gc-default">B3<br><small>12品</small></div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; font-size: 24px; color: var(--accent);">→</div>
+    <div>
+      <div style="font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 600;">合并后（4格）</div>
+      <div class="grid-visual" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="grid-cell gc-yellow">入门级家用<br><small>A1+A2 = 5品</small></div>
+        <div class="grid-cell gc-default">中端家用<br><small>A3 = 8品</small></div>
+        <div class="grid-cell gc-yellow">入门级租房<br><small>B1+B2 = 6品</small></div>
+        <div class="grid-cell gc-default">中端租房<br><small>B3 = 12品</small></div>
+      </div>
+    </div>
+  </div>
+
+  <h3>调优总结（自动生成）</h3>
+  <div class="insight-block">
+    <div class="ib-title">网格调优总结</div>
+    <div class="ib-item">使用属性：价格段 × 使用场景 × 保鲜技术</div>
+    <div class="ib-item">总网格数：24 → 合并后 18（合并了6个碎片格）</div>
+    <div class="ib-item" style="margin-top: 8px;">合并记录：</div>
+    <div class="ib-item" style="padding-left: 20px;">"1K以下+租房+基础保鲜" + "1K以下+租房+无保鲜" → 合并为"低价租房格"，原因：商品数均&lt;3，业务同质</div>
+    <div class="ib-item" style="padding-left: 20px;">"3K以上+家用+净味" + "3K以上+家用+除菌" → 合并为"高端家用健康格"，原因：用户决策不分这两种</div>
+    <div class="ib-item" style="margin-top: 8px;">重点网格：</div>
+    <div class="ib-item" style="padding-left: 20px;"><span class="ib-dot" style="background: var(--green);"></span>"1-2K+母婴+除菌" — 系统标注蓝海</div>
+    <div class="ib-item" style="padding-left: 20px;"><span class="ib-dot" style="background: var(--red);"></span>"2-3K+家用+基础" — 系统标注红海</div>
+    <div class="ib-item" style="padding-left: 20px;"><span class="ib-dot" style="background: var(--yellow);"></span>"3K++母婴+净味除菌" — 手动标注重点关注</div>
+  </div>
+
+  <div style="background: var(--hitl-light); border-radius: 8px; padding: 14px 18px; border-left: 3px solid var(--hitl);">
+    <div style="font-size: 12px; font-weight: 600; color: var(--hitl); margin-bottom: 8px;">🤖 Agent 检测到调优习惯</div>
+    <div style="font-size: 13px; color: var(--text); margin-bottom: 10px;">你在本次调优中做了这些操作，它们反映了你的分析偏好：</div>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px;">
+      <div style="font-size: 12px;"><span style="font-weight: 600;">合并习惯</span> <span class="text-hitl">merge_habit</span>：净味/除菌 → 净味除菌</div>
+      <div style="font-size: 12px;"><span style="font-weight: 600;">指标偏好</span> <span class="text-hitl">metric_preference</span>：主指标=搜索-供给缺口</div>
+      <div style="font-size: 12px;"><span style="font-weight: 600;">重点关注</span> <span class="text-hitl">focus_override</span>：3K+/母婴/净味除菌</div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <span class="mu-action mu-btn-primary" style="font-size: 12px;">沉淀策略 → 同步至ERP</span>
+      <span class="mu-action mu-btn-ghost" style="font-size: 12px;">仅本次使用</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 6. 属性提取与归一 ===== -->
+<div class="section" id="step3">
+  <div class="section-label"><span class="num">06</span> Step 5 · 属性提取与归一（画格后）</div>
+  <h2>属性提取与归一</h2>
+  <p><strong>本环节在"网格画出来之后"执行</strong>（位于网格绘制与调优之后、诊断之前）。先按选定维度把格子画出来，再逐格做两件事：<strong>① 提取校验</strong>——检查商品挂的属性是否正确，不正确的让用户修正；<strong>② 归一</strong>——将过细的属性值合并为有业务含义的统一值。这是网格质量的根基——脏属性值=废网格。</p>
+
+  <h3>场景一：属性校验与修正（画完网格后）</h3>
+  <p>网格画完后，系统逐格检查商品的属性挂载情况。模型为每个商品的属性挂载计算<strong>置信度分数</strong>，置信度较低的标记为待确认，用户可直接修正。</p>
+
+  <div class="mock-ui">
+    <div class="mu-title">属性校验 — 发现 3 条待确认</div>
+    <div class="mu-divider"></div>
+    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; background: var(--yellow-light);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-size: 13px;">
+          <span class="mu-tag mu-tag-yellow">置信度 62%</span>
+          商品"海尔 BCD-180"当前挂载：<strong>使用场景=家用</strong>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--text2); margin-top: 4px;">模型推断：标题含"租房小冰箱"，更可能属于"租房"场景，请确认</div>
+      <div style="margin-top: 6px; display: flex; gap: 6px;">
+        <span class="mu-action mu-btn-primary" style="margin: 0; padding: 4px 12px; font-size: 12px;">修正为 租房</span>
+        <span class="mu-action mu-btn-ghost" style="margin: 0; padding: 4px 12px; font-size: 12px;">保持 家用</span>
+        <span style="border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 12px; color: var(--text2);">自填：____</span>
+      </div>
+    </div>
+    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; background: var(--red-light);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-size: 13px;">
+          <span class="mu-tag mu-tag-red">置信度 35%</span>
+          商品"容声 BC-98"缺失：<strong>保鲜技术</strong>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--text2); margin-top: 4px;">商品描述含"净味保鲜"，建议补充"净味"</div>
+      <div style="margin-top: 6px; display: flex; gap: 6px;">
+        <span class="mu-action mu-btn-primary" style="margin: 0; padding: 4px 12px; font-size: 12px;">补充 净味</span>
+        <span class="mu-action mu-btn-ghost" style="margin: 0; padding: 4px 12px; font-size: 12px;">跳过</span>
+      </div>
+    </div>
+    <div class="mu-divider" style="margin-top: 10px;"></div>
+    <div style="background: var(--hitl-light); border-radius: 6px; padding: 10px 14px; margin-top: 8px; border-left: 3px solid var(--hitl);">
+      <div style="font-size: 12px; font-weight: 600; color: var(--hitl); margin-bottom: 6px;">🤖 Agent 检测到多次相同修正</div>
+      <div style="font-size: 13px; color: var(--text); margin-bottom: 8px;">你已3次将"租房"相关商品从"家用"修正为"租房"，要固化为品类归一规则吗？</div>
+      <div style="display: flex; gap: 8px;">
+        <span class="mu-action mu-btn-primary" style="font-size: 12px;">固化为规则 → 同步至ERP</span>
+        <span class="mu-action mu-btn-ghost" style="font-size: 12px;">仅本次使用</span>
+      </div>
+      <div style="margin-top: 6px; font-size: 11px; color: var(--hitl);">沉淀为 normalization_rule → ERP 策略中心</div>
+    </div>
+  </div>
+
+  <h3>场景二：归一（合并网格时触发）</h3>
+  <p>当用户在调优环节合并网格时，系统通过<strong>模型意图识别</strong>判断：用户是否因为属性值画得太细才做合并？如果是，则主动询问是否将细粒度属性归一。</p>
+
+  <div class="callout callout-principle" style="background: var(--hitl-light); border-color: rgba(201,133,10,0.15); border-left-color: var(--hitl);">
+    <strong>归一触发机制：</strong>用户合并"珊瑚粉格"+"樱花粉格"+"蜜桃粉格" → 模型识别意图"这些颜色属性值太细了" → 询问用户是否归一为"粉色" → 归一后，后续提取只会出现"粉色"，不会再拆出更细的值。
+  </div>
+
+  <div class="mock-ui">
+    <div class="mu-title">属性归一修正 — 颜色</div>
+    <div class="mu-divider"></div>
+    <div class="mu-row">
+      <span class="mu-label">当前值</span>
+      <span style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <span class="mu-tag mu-tag-red">暗黑色</span>
+        <span class="mu-tag mu-tag-red">黑色</span>
+        <span class="mu-tag mu-tag-red">深黑色</span>
+        <span class="mu-tag mu-tag-yellow">珊瑚粉</span>
+        <span class="mu-tag mu-tag-yellow">樱花粉</span>
+        <span class="mu-tag mu-tag-yellow">蜜桃粉</span>
+      </span>
+    </div>
+    <div class="mu-divider"></div>
+    <div class="mu-row">
+      <span class="mu-label">归一后</span>
+      <span style="display: flex; gap: 6px;">
+        <span class="mu-tag mu-tag-blue">黑色</span>
+        <span class="mu-tag mu-tag-purple">粉色</span>
+      </span>
+    </div>
+    <div class="mu-divider" style="margin-top: 12px;"></div>
+    <div style="background: var(--hitl-light); border-radius: 6px; padding: 10px 14px; border-left: 3px solid var(--hitl);">
+      <div style="font-size: 12px; font-weight: 600; color: var(--hitl); margin-bottom: 6px;">🤖 Agent 识别到合并意图</div>
+      <div style="font-size: 13px; color: var(--text); margin-bottom: 8px;">你合并了"珊瑚粉/樱花粉/蜜桃粉"三个格子，是因为颜色属性值太细了吗？确认归一后，后续只提取"粉色"。</div>
+      <div style="display: flex; gap: 8px;">
+        <span class="mu-action mu-btn-primary" style="font-size: 12px;">确认归一 → 固化为规则</span>
+        <span class="mu-action mu-btn-ghost" style="font-size: 12px;">仅合并格子，不归一属性</span>
+      </div>
+      <div style="margin-top: 6px; font-size: 11px; color: var(--hitl);">沉淀为 normalization_rule → ERP 策略中心</div>
+    </div>
+  </div>
+
+  <h3>归一的三种类型</h3>
+  <table class="spec-table">
+    <thead><tr><th>类型</th><th>问题描述</th><th>归一方式</th><th>示例</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">同义归一</td><td>同一含义多种表述</td><td>同义词映射</td><td>暗黑色/黑色/深黑色 → 黑色</td></tr>
+      <tr><td class="fw-600">粒度归一</td><td>属性值粒度过细或过粗</td><td>区间归并</td><td>50L/80L/100L → 小型(≤100L)</td></tr>
+      <tr><td class="fw-600">缺失归一</td><td>属性值缺失但可推断</td><td>从商品标题/描述提取</td><td>商品名含"迷你"→推断容量=小型</td></tr>
+    </tbody>
+  </table>
+
+
+
+</div>
+
+<!-- ===== 9. 网格诊断 ===== -->
+<div class="section" id="step7">
+  <div class="section-label"><span class="num">07</span> Step 6</div>
+  <h2>网格诊断</h2>
+
+  <h3>自动标注规则</h3>
+  <table class="spec-table">
+    <thead><tr><th>标注</th><th>规则</th><th>颜色</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge" style="background: var(--green-light); color: var(--green);">蓝海机会</span></td><td>增速>25% AND 市占<5% AND 动销>60% AND 搜索-供给缺口>0</td><td>绿</td></tr>
+      <tr><td><span class="badge" style="background: var(--red-light); color: var(--red);">红海预警</span></td><td>增速<-5% AND 集中度>70%</td><td>红</td></tr>
+      <tr><td><span class="badge" style="background: var(--yellow-light); color: var(--yellow);">机会格</span></td><td>增速>15% AND 商品数<均值 AND 动销>50%</td><td>黄</td></tr>
+      <tr><td><span class="badge" style="background: var(--blue-light); color: var(--blue);">现金牛</span></td><td>市占>20% AND 增速5~15%</td><td>蓝</td></tr>
+      <tr><td><span class="badge" style="background: var(--orange-light); color: var(--orange);">失守格</span></td><td>我方市占环比下降>3%</td><td>橙</td></tr>
+    </tbody>
+  </table>
+
+  <h3>对比基准（通用规则）</h3>
+  <table class="spec-table">
+    <thead><tr><th>对比维度</th><th>说明</th><th>典型发现</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">行业大盘</td><td>格子增速/市占 vs 品类整体均值</td><td>该格子增速45%远超品类均值12% → 高增长</td></tr>
+      <tr><td class="fw-600">竞对统治区</td><td>各竞对平台在格子内的GMV/市占</td><td>天猫统治区：天猫市占>60%；抖音统治区：抖音市占>40%</td></tr>
+      <tr><td class="fw-600">渠道差异</td><td>不同渠道在同一格子的表现差异</td><td>抖音增速高但GMV小 → 早期增长信号</td></tr>
+    </tbody>
+  </table>
+
+  <div class="mock-ui">
+    <div class="mu-title">网格诊断 — 竞争格局对比</div>
+    <div class="mu-divider"></div>
+    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; background: var(--green-light);">
+      <div style="font-size: 13px; font-weight: 500;">
+        <span class="mu-tag mu-tag-green">蓝海</span> 1-2K / 母婴 / 除菌
+      </div>
+      <div style="font-size: 12px; color: var(--text2); margin-top: 4px;">
+        增速45% <strong>vs 行业均值12%</strong> · 京东市占18% · 天猫市占35% · 抖音市占22% → 无明显统治方
+      </div>
+    </div>
+    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; background: var(--red-light);">
+      <div style="font-size: 13px; font-weight: 500;">
+        <span class="mu-tag mu-tag-red">天猫统治区</span> 2-3K / 家用 / 基础保鲜
+      </div>
+      <div style="font-size: 12px; color: var(--text2); margin-top: 4px;">
+        天猫市占68% · 京东市占15% · 增速-8% → 天猫绝对优势，京东进攻成本高
+      </div>
+    </div>
+    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; background: var(--yellow-light);">
+      <div style="font-size: 13px; font-weight: 500;">
+        <span class="mu-tag mu-tag-yellow">抖音崛起</span> 1K以下 / 租房 / 基础
+      </div>
+      <div style="font-size: 12px; color: var(--text2); margin-top: 4px;">
+        抖音市占52%（同比+180%） · 京东市占20% → 抖音快速抢占，需关注
+      </div>
+    </div>
+  </div>
+
+  <h3>策略改变诊断</h3>
+  <div class="callout callout-principle">
+    同一格子，不同策略可能得到不同诊断：<br><br>
+    <strong>格子：1-2K / 母婴 / 除菌</strong><br>
+    无策略 → 增速18%，市占6% → <span class="text-yellow fw-600">机会格</span><br>
+    价格带聚焦策略 → 聚焦1-2K价格带 → <span class="text-green fw-600">核心机会</span>（策略聚焦此价格段）<br>
+    竞争防御策略 → 竞对市占已达40% → <span class="text-red fw-600">防守区</span>（已有强敌）<br><br>
+    <strong>策略改变诊断，诊断改变结论，结论改变行动。</strong>
+  </div>
+
+  <h3>洞察结论示例</h3>
+  <div class="insight-block">
+    <div class="ib-title">冰箱品类 · 价格带聚焦策略 · 货盘Top500</div>
+    <div class="ib-item" style="color: var(--text2);">网格：价格段 × 使用场景 × 保鲜技术，合并后18格</div>
+    <div class="ib-item" style="margin-top: 8px;"><span class="ib-dot" style="background: var(--green);"></span><strong>蓝海</strong> 1-2K/母婴/除菌 — 增速45%，动销72%，搜索供给缺口3.2倍</div>
+    <div class="ib-item"><span class="ib-dot" style="background: var(--green);"></span><strong>蓝海</strong> 3K+/家用/净味除菌 — 增速32%，均价4,200元</div>
+    <div class="ib-item"><span class="ib-dot" style="background: var(--red);"></span><strong>红海</strong> 2-3K/家用/基础保鲜 — 集中度81%，增速-8%</div>
+    <div class="ib-item"><span class="ib-dot" style="background: var(--orange);"></span><strong>失守</strong> 1-2K/租房/基础 — 市占从18%降至12%</div>
+    <div class="ib-item" style="margin-top: 8px; color: var(--accent);">建议优先关注：格子①② —— 1-2K/母婴/除菌（蓝海）与 3K+/家用/净味除菌（蓝海）。</div>
+  </div>
+
+  <div style="background: var(--hitl-light); border-radius: 8px; padding: 14px 18px; border-left: 3px solid var(--hitl);">
+    <div style="font-size: 12px; font-weight: 600; color: var(--hitl); margin-bottom: 8px;">🤖 Agent 追问纠偏原因</div>
+    <div style="font-size: 13px; color: var(--text); margin-bottom: 10px;">你把"蓝海机会"改成了"非机会格子"，他知道的业务事实系统不知道。这个"为什么"就是策略本身——</div>
+    <div style="margin-bottom: 10px;">
+      <label style="display: block; font-size: 13px; margin-bottom: 4px;"><input type="checkbox" checked> 这个细分已有线下强势品牌</label>
+      <label style="display: block; font-size: 13px; margin-bottom: 4px;"><input type="checkbox"> 利润率太低不值得进</label>
+      <label style="display: block; font-size: 13px; margin-bottom: 4px;"><input type="checkbox"> 退货率极高</label>
+      <label style="display: block; font-size: 13px; margin-bottom: 4px;"><input type="checkbox"> 马上有政策变动</label>
+      <span style="color: var(--text2); font-size: 13px;">补充：__________</span>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <span class="mu-action mu-btn-primary" style="font-size: 12px;">保存理由 → 同步至ERP</span>
+      <span class="mu-action mu-btn-ghost" style="font-size: 12px;">跳过</span>
+    </div>
+    <div style="margin-top: 6px; font-size: 11px; color: var(--hitl);">沉淀为 diagnosis_override → ERP 策略中心</div>
+  </div>
+</div>
+
+<!-- ===== 3. 策略沉淀体系 ===== -->
+<div class="section" id="strategy">
+  <div class="section-label"><span class="num">08</span> 策略沉淀</div>
+  <h2>品类网格的策略沉淀体系</h2>
+  <p>策略不是独立的业务框架，而是<strong>直接绑定在网格拆解过程上的配置包</strong>——同一个品类，换了策略，拆出来的维度、归一规则、指标权重、合并建议、诊断结论全都不同。策略沉淀 = 把这些"怎么拆"的知识固化下来，让新人不用重新摸索。</p>
+
+  <div class="callout callout-principle" style="background: var(--hitl-light); border-color: rgba(201,133,10,0.15); border-left-color: var(--hitl);">
+    <strong>核心原则：策略不是"写"出来的，是"做"出来的。</strong>不要让用户额外填策略表，而是<span class="text-hitl fw-600">在他本来就要做决策的瞬间，顺手捕获</span>。所有捕获的策略碎片最终<strong>统一沉淀至 ERP 策略中心</strong>，成为组织级可复用资产。
+  </div>
+  <div class="erp-flow">
+    <div class="erp-flow-node">用户操作</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node">系统捕获确认</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node">碎片聚类</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node">负责人审核</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node erp-target">ERP 策略中心入库</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node">新用户自动推荐</div>
+  </div>
+  <div class="callout callout-erp">
+    <strong>所有策略统一沉淀至 ERP 策略中心。</strong>品类负责人在 ERP 端审核碎片、确认入库、管理策略生命周期。跨用户3人以上做了相同操作 → 自动推给品类负责人确认 → 升格为品类策略并写入 ERP。
+  </div>
+
+  <h3>经验模板库 — 资深经验打包，新人一键复用</h3>
+  <p>沉淀的策略不只用于"下次自动推荐"，还进一步打包为<strong>经验模板</strong>：把资深运营按品类沉淀好的<span class="text-accent fw-600">属性拆分组合 + 指标配置 + 归一/网格调整规则</span>封装成一个品类模板。</p>
+  <div class="callout callout-principle">
+    <strong>新人使用路径：</strong>选中对应品类模板后，系统<span class="text-accent fw-600">自动走完前四步的默认配置</span>（货盘圈选 / 属性推荐 / 提取归一 / 指标选择），<span class="text-accent fw-600">直接跳到 Step 5 查看网格结果</span>，再基于模板做微调。既能复用资深经验，又能让新人在实操里逐步理解每一步的逻辑。<br><br>
+    <strong>对已有网格：</strong>可从任意步骤进入配置，并<span class="text-accent fw-600">回看每个环节当初是怎么配的</span>（用了哪些维度、如何归一、挂了哪些指标），支持从任一步重新走流程。
+  </div>
+  <div class="erp-flow">
+    <div class="erp-flow-node">资深沉淀策略</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node erp-target">打包为品类经验模板</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node">新人选模板</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node">自动完成前4步</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node">跳到Step5看网格·微调</div>
+  </div>
+
+  <h3>策略如何影响网格拆解</h3>
+  <table class="spec-table">
+    <thead><tr><th>策略影响环节</th><th>无策略时</th><th>有策略时</th><th>沉淀物（→ ERP）</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">货盘范围</td><td>每次手动圈选</td><td>按策略默认圈定盘子（TopN/品牌/价格卡口）</td><td>scope_preference</td></tr>
+      <tr><td class="fw-600">维度选择</td><td>从所有属性中硬选</td><td>按策略偏好自动排序推荐</td><td>dimension_preference</td></tr>
+      <tr><td class="fw-600">属性归一</td><td>按默认规则归并</td><td>按策略关注点决定哪些要归、哪些要拆</td><td>normalization_rule</td></tr>
+      <tr><td class="fw-600">指标权重</td><td>所有指标等权</td><td>策略相关指标权重提升</td><td>metric_preference</td></tr>
+      <tr><td class="fw-600">网格合并</td><td>按商品数阈值机械合并</td><td>按策略视角判断哪些区分无意义</td><td>merge_habit</td></tr>
+      <tr><td class="fw-600">诊断规则</td><td>通用蓝海/红海规则</td><td>叠加策略特有的判断逻辑</td><td>diagnosis_override</td></tr>
+      <tr><td class="fw-600">重点关注</td><td>按增速/市占排序</td><td>按策略方向自动标注战略格子</td><td>focus_override</td></tr>
+    </tbody>
+  </table>
+
+  <h3>示例：同一品类不同策略下的拆解差异</h3>
+  <div class="strategy-grid">
+    <div class="strategy-card">
+      <div class="sc-type" style="color: var(--green);">价格带聚焦策略</div>
+      <div class="sc-name">冰箱 · 价格带聚焦</div>
+      <div class="sc-row"><span class="label">推荐维度</span><span class="value">价格段×使用场景×保鲜技术</span></div>
+      <div class="sc-row"><span class="label">归一规则</span><span class="value">价格段细拆（每500元一档）</span></div>
+      <div class="sc-row"><span class="label">高权指标</span><span class="value">均价↑、价格带市占↑、增速↑</span></div>
+      <div class="sc-row"><span class="label">合并建议</span><span class="value">同价格段内场景可合并</span></div>
+      <div class="sc-row"><span class="label">重点关注</span><span class="value">1-2K和2-3K价格带中增速>20%的格子</span></div>
+    </div>
+    <div class="strategy-card">
+      <div class="sc-type" style="color: var(--blue);">供给空白策略</div>
+      <div class="sc-name">冰箱 · 供给空白</div>
+      <div class="sc-row"><span class="label">推荐维度</span><span class="value">功能卖点×价格段×品牌</span></div>
+      <div class="sc-row"><span class="label">归一规则</span><span class="value">功能卖点细拆（每个功能独立不合并）</span></div>
+      <div class="sc-row"><span class="label">高权指标</span><span class="value">搜索-供给缺口↑、空格率↑</span></div>
+      <div class="sc-row"><span class="label">合并建议</span><span class="value">品牌按档位合并（不逐品牌拆）</span></div>
+      <div class="sc-row"><span class="label">重点关注</span><span class="value">搜索高但商品少的格子</span></div>
+    </div>
+    <div class="strategy-card">
+      <div class="sc-type" style="color: var(--purple);">竞争防御策略</div>
+      <div class="sc-name">冰箱 · 竞争防御</div>
+      <div class="sc-row"><span class="label">推荐维度</span><span class="value">品牌×价格段×核心卖点</span></div>
+      <div class="sc-row"><span class="label">归一规则</span><span class="value">品牌细拆（不按档位合并）</span></div>
+      <div class="sc-row"><span class="label">高权指标</span><span class="value">我方市占↑、竞对市占↑、重叠度↑</span></div>
+      <div class="sc-row"><span class="label">合并建议</span><span class="value">非竞对品牌可合并为"其他"</span></div>
+      <div class="sc-row"><span class="label">重点关注</span><span class="value">我方市占环比下降>3%的格子</span></div>
+    </div>
+  </div>
+
+  <h3>策略配置结构（存储于 ERP）</h3>
+  <div class="code-block">
+<span class="key">strategy</span>: <span class="str">"价格带聚焦"</span>
+<span class="key">category_scope</span>: [<span class="str">"冰箱"</span>, <span class="str">"洗衣机"</span>, <span class="str">"空调"</span>]
+<span class="key">source</span>: <span class="str">"ERP策略中心"</span>          <span class="comment"># 统一存储于ERP</span>
+
+<span class="key">dimension_priority</span>:              <span class="comment"># 维度偏好</span>
+  - <span class="str">价格段</span>
+  - <span class="str">使用场景</span>
+  - <span class="str">保鲜技术</span>
+
+<span class="key">normalization_rules</span>:             <span class="comment"># 归一规则</span>
+  <span class="str">颜色</span>: { <span class="str">暗黑色/黑色/深黑色</span> → <span class="str">黑色</span>, <span class="str">珊瑚粉/樱花粉/蜜桃粉</span> → <span class="str">粉色</span> }
+  <span class="str">价格段</span>: { <span class="comment"># 价格带聚焦下细拆，每500元一档</span> }
+
+<span class="key">metric_weights</span>:                  <span class="comment"># 指标权重</span>
+  <span class="str">均价</span>: <span class="num">3</span>, <span class="str">价格带市占</span>: <span class="num">3</span>, <span class="str">增速</span>: <span class="num">2</span>
+
+<span class="key">merge_suggestions</span>:               <span class="comment"># 合并建议</span>
+  - <span class="str">"同价格段内场景可合并"</span>
+  - <span class="str">"保鲜技术基础类合并"</span>
+
+<span class="key">diagnosis_override</span>:              <span class="comment"># 诊断覆盖</span>
+  - <span class="key">rule</span>: <span class="str">"价格段='1-2K' AND 增速>20%"</span>
+    <span class="key">label</span>: <span class="str">"核心机会"</span>
+
+<span class="key">focus_override</span>:                  <span class="comment"># 重点关注</span>
+  - <span class="str">"自动标注1-2K和2-3K价格带中增速>20%的格子"</span>
+  </div>
+</div>
+
+<!-- ===== 11. 组件架构 ===== -->
+<div class="section" id="components">
+  <div class="section-label"><span class="num">09</span> 架构设计</div>
+  <h2>组件架构 — 多形态接入</h2>
+  <p>不同能力适合不同的技术形态。不是所有能力都用 Skill，而是根据<strong>复杂度、复用性、调用频率</strong>选择最合适的形态。</p>
+
+  <h3>组件形态定义</h3>
+  <table class="spec-table">
+    <thead><tr><th>形态</th><th>适用场景</th><th>特征</th></tr></thead>
+    <tbody>
+      <tr><td><span class="comp-type comp-skill">Skill</span></td><td>原子化的可复用操作</td><td>单入单出、无状态、可组合</td></tr>
+      <tr><td><span class="comp-type comp-model">Model</span></td><td>需要推理/判断的能力</td><td>有模型服务支撑、需训练数据</td></tr>
+      <tr><td><span class="comp-type comp-api">API</span></td><td>数据获取与写入</td><td>对接已有系统、标准化接口</td></tr>
+      <tr><td><span class="comp-type comp-workflow">Workflow</span></td><td>多步骤编排</td><td>有条件分支、有状态流转</td></tr>
+      <tr><td><span class="comp-type comp-tool">Tool</span></td><td>轻量计算/转换工具</td><td>纯函数、无副作用</td></tr>
+    </tbody>
+  </table>
+
+  <h3>各步骤的组件拆解</h3>
+  <table class="spec-table">
+    <thead><tr><th>步骤</th><th>组件形态</th><th>具体实现</th><th>负责角色</th><th>优先级</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">货盘圈选</td><td><span class="comp-type comp-api">API</span></td><td>取数API：商品查询+TopN+条件筛选</td><td>应用开发</td><td><span class="badge badge-p0">P0</span></td></tr>
+      <tr><td class="fw-600">属性推荐</td><td><span class="comp-type comp-model">Model</span> + <span class="comp-type comp-skill">Skill</span></td><td>模型：维度推荐排序；Skill：策略模板匹配</td><td>算法开发</td><td><span class="badge badge-p0">P0</span></td></tr>
+      <tr><td class="fw-600">属性归一</td><td><span class="comp-type comp-model">Model</span> + <span class="comp-type comp-tool">Tool</span></td><td>模型：NLP属性提取；Tool：同义词映射/区间归并</td><td>算法开发</td><td><span class="badge badge-p0">P0</span></td></tr>
+      <tr><td class="fw-600">指标选择</td><td><span class="comp-type comp-skill">Skill</span> + <span class="comp-type comp-api">API</span></td><td>Skill：策略→指标映射；取数API：交易/搜索数据获取</td><td>算法+应用</td><td><span class="badge badge-p0">P0</span></td></tr>
+      <tr><td class="fw-600">网格绘制与调优</td><td><span class="comp-type comp-tool">Tool</span> + <span class="comp-type comp-workflow">Workflow</span></td><td>维度交叉计算+商品归格+置信度计算；前端交互控件：合并→重绘→确认</td><td>算法+应用</td><td><span class="badge badge-p0">P0</span></td></tr>
+      <tr><td class="fw-600">网格诊断</td><td><span class="comp-type comp-model">Model</span> + <span class="comp-type comp-skill">Skill</span></td><td>模型：诊断规则推理；Skill：洞察结论文本生成</td><td>算法开发</td><td><span class="badge badge-p0">P0</span></td></tr>
+      <tr><td class="fw-600">策略沉淀</td><td><span class="comp-type comp-api">API</span> + <span class="comp-type comp-workflow">Workflow</span></td><td>策略API：读写ERP；前端：捕获弹窗→确认→入库</td><td>算法+应用</td><td><span class="badge badge-p1">P1</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>数据源</h3>
+  <table class="spec-table">
+    <thead><tr><th>数据源</th><th>接入方式</th><th>用途</th><th>优先级</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">商品属性库</td><td>API</td><td>货盘圈选、属性归一、网格生成</td><td><span class="badge badge-p0">P0</span></td></tr>
+      <tr><td class="fw-600">交易数据</td><td>API</td><td>指标计算</td><td><span class="badge badge-p0">P0</span></td></tr>
+      <tr><td class="fw-600">站内搜索数据</td><td>API</td><td>搜索-供给缺口</td><td><span class="badge badge-p0">P0</span></td></tr>
+      <tr><td class="fw-600">ERP 策略中心</td><td>API</td><td>策略读取+写入</td><td><span class="badge badge-p0">P0</span></td></tr>
+      <tr><td class="fw-600">站外趋势</td><td>API</td><td>属性推荐信号</td><td><span class="badge badge-p1">P1</span></td></tr>
+      <tr><td class="fw-600">竞对数据</td><td>API</td><td>竞争格局 / 诊断基准</td><td><span class="badge badge-p1">P1</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== 原子能力与 Agent 编排 ===== -->
+<div class="section" id="orchestration">
+  <div class="section-label"><span class="num">10</span> 架构设计 · 编排</div>
+  <h2>原子能力与 Agent 编排</h2>
+  <p>把上面的 6 步工作流从<strong>"流程视角"翻译成"能力视角"</strong>：每一步不是黑盒，而是由一批可独立调用、单一职责的<strong>原子能力</strong>（Tool / Skill / Model / API）拼成。<strong>固定的是原子能力，灵活的是编排</strong>——Agent 持有对话上下文与策略配置，按用户意图动态组合这些能力，而不是跑一条写死的流水线。</p>
+
+  <div class="callout callout-principle">
+    <strong>类比：</strong>正如 <code>Tool(拉数据) → Skill(诊断) → Skill(策略生成) → Tool(执行)</code> 这样的主干——能力本身保持原子、无状态、可复用；Agent 只决定<strong>按什么顺序调、何时回退、何时跳步、何时插入人机确认</strong>。
+  </div>
+
+  <h3>① 原子能力清单（可独立调用 · 可复用）</h3>
+  <table class="spec-table">
+    <thead><tr><th>形态</th><th>原子能力</th><th>输入 → 输出</th><th>驱动</th></tr></thead>
+    <tbody>
+      <tr><td><span class="comp-type comp-api">API</span></td><td class="fw-600">商品取数</td><td>品类 + 筛选条件 + TopN → 商品集</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-api">API</span></td><td class="fw-600">指标取数</td><td>商品集 + 指标项 → 交易 / 搜索指标</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-api">API</span></td><td class="fw-600">份额取数</td><td>商品集 + 渠道 → 渠道 / 竞对份额</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-api">API</span></td><td class="fw-600">站外趋势取数</td><td>品类 → 热搜 / 趋势信号</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-api">API</span></td><td class="fw-600">ERP 策略读写</td><td>策略 ID / 策略碎片 → 读取配置 / 写入沉淀</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-model">Model</span></td><td class="fw-600">属性提取</td><td>标题 / 描述 → 属性值 + 置信度</td><td><span class="nav-tag nav-tag-algo">算</span></td></tr>
+      <tr><td><span class="comp-type comp-model">Model</span></td><td class="fw-600">维度推荐</td><td>用户决策 + 站外趋势 + 策略 → 排序维度列表</td><td><span class="nav-tag nav-tag-algo">算</span></td></tr>
+      <tr><td><span class="comp-type comp-model">Model</span></td><td class="fw-600">合并意图识别</td><td>用户合并操作 → 是否触发属性归一</td><td><span class="nav-tag nav-tag-algo">算</span></td></tr>
+      <tr><td><span class="comp-type comp-model">Model</span></td><td class="fw-600">洞察生成</td><td>诊断结果 + 格子指标 → 结论文本</td><td><span class="nav-tag nav-tag-algo">算</span></td></tr>
+      <tr><td><span class="comp-type comp-skill">Skill</span></td><td class="fw-600">策略→指标映射</td><td>策略 → 指标组合与权重</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-skill">Skill</span></td><td class="fw-600">经验模板匹配</td><td>品类 + 策略 → 命中的经验模板</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-skill">Skill</span></td><td class="fw-600">属性归一</td><td>细粒度值 + 规则 → 归一值（同义 / 区间 / 缺失）</td><td><span class="nav-tag nav-tag-algo">算</span><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-skill">Skill</span></td><td class="fw-600">诊断打标</td><td>格子指标 + 阈值规则 → 蓝海 / 红海 / 现金牛标注</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-skill">Skill</span></td><td class="fw-600">偏好捕获</td><td>用户操作 → 策略碎片（scope / dimension / merge…）</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-tool">Tool</span></td><td class="fw-600">维度交叉</td><td>行 / 列维度值 → 空网格骨架</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-tool">Tool</span></td><td class="fw-600">商品归格</td><td>商品集 + 网格 → 填充网格</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-tool">Tool</span></td><td class="fw-600">指标聚合</td><td>填充网格 + 指标 → 带指标网格</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-tool">Tool</span></td><td class="fw-600">网格预检</td><td>网格 → 空格率 / 最大格 / 碎片格</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-tool">Tool</span></td><td class="fw-600">格子 / 属性值合并</td><td>选中的格子或值 → 合并后网格</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+      <tr><td><span class="comp-type comp-tool">Tool</span></td><td class="fw-600">明细导出</td><td>格子 → CSV 明细</td><td><span class="nav-tag nav-tag-data">数</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>② Workflow 主干（Agent 编排的默认链路）</h3>
+  <p>正常一次分析，Agent 按下面这条主干依次调用原子能力；每个节点标注了它的形态：</p>
+  <div class="erp-flow">
+    <div class="erp-flow-node"><span class="comp-type comp-api">API</span><br>商品取数</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node"><span class="comp-type comp-model">Model</span><br>维度推荐</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node"><span class="comp-type comp-skill">Skill</span><br>指标映射 + 取数</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node"><span class="comp-type comp-tool">Tool</span><br>网格计算<br><small>交叉·归格·聚合</small></div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node"><span class="comp-type comp-model">Model</span><br>属性校验归一<br><small>画格后</small></div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node"><span class="comp-type comp-skill">Skill</span><br>诊断打标</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node"><span class="comp-type comp-model">Model</span><br>洞察生成</div>
+    <div class="erp-flow-arrow">→</div>
+    <div class="erp-flow-node erp-target"><span class="comp-type comp-api">API</span><br>策略沉淀 → ERP</div>
+  </div>
+
+  <h3>③ Agent 灵活编排（不是固定流水线）</h3>
+  <p>主干只是默认路径。Agent 会依据上下文改变编排——跳步、回退、插分支、按需扩展：</p>
+  <table class="spec-table">
+    <thead><tr><th>编排能力</th><th>触发条件</th><th>Agent 的动作</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">↺ 循环回退</td><td>诊断后发现维度选错 / 归一过粗</td><td>重新调用 <b>维度推荐 → 网格计算</b>，只重算下游，不从头再来</td></tr>
+      <tr><td class="fw-600">⤼ 跳步（静默跑）</td><td>命中经验模板 / 模式 B</td><td>跳过推荐与归一交互：<b>读策略 → 套配置 → 网格计算 → 诊断</b> 直出结果</td></tr>
+      <tr><td class="fw-600">⑂ 条件分支</td><td>属性置信度低 / 用户合并格子</td><td>插入 <b>属性校验 HITL</b>；或调 <b>合并意图识别</b> 决定是否触发归一</td></tr>
+      <tr><td class="fw-600">＋ 按需扩展</td><td>用户勾选扩展指标 / 切换策略</td><td>追加 <b>指标取数 / 份额取数</b>，联动重跑 <b>诊断打标 + 洞察生成</b></td></tr>
+    </tbody>
+  </table>
+
+  <h3>④ 编排定义（示意）</h3>
+  <div class="code-block">
+<span class="comment"># 主干：Agent 依次编排原子能力</span>
+<span class="key">API</span>.商品取数(品类, 条件, TopN)
+  → <span class="key">Model</span>.维度推荐(用户决策 + 站外趋势 + 策略)   <span class="comment"># HITL: 可增删维度</span>
+  → <span class="key">Skill</span>.指标映射(策略) + <span class="key">API</span>.指标取数
+  → <span class="key">Tool</span>.网格计算(维度交叉 → 商品归格 → 指标聚合)
+  → <span class="key">Model</span>.属性校验归一(画格后)              <span class="comment"># HITL: 低置信度确认</span>
+  → <span class="key">Skill</span>.诊断打标(阈值规则) → <span class="key">Model</span>.洞察生成
+  → <span class="key">API</span>.策略沉淀(偏好碎片 → ERP)
+
+<span class="comment"># 分支 / 循环：Agent 按上下文动态决策</span>
+<span class="str">if</span> 命中经验模板:      跳过推荐 &amp; 归一交互, 读策略 → 套配置 → 静默直出
+<span class="str">if</span> 属性置信度 &lt; 阈值:  插入 属性校验 HITL 节点
+<span class="str">if</span> 用户合并格子:       <span class="key">Model</span>.合并意图识别 → 命中则触发 <span class="key">Skill</span>.属性归一
+<span class="str">if</span> 诊断后维度不合适:   ↺ 回到 维度推荐, 仅重算下游节点
+<span class="str">if</span> 用户切换策略:       重跑 诊断打标 + 洞察生成 (数据不变, 只换规则)
+  </div>
+
+  <div class="callout callout-erp">
+    <strong>编排原则：</strong>原子能力保持<span class="text-accent fw-600">单一职责、无状态、可组合</span>，谁都能被单独调用或复用到别的插件；<strong>编排逻辑集中在 Agent</strong>——它持有对话上下文与策略配置，负责决定调用顺序、是否回退 / 跳步、何时插入人机确认。这样既能"模式 A 一步步交互"，也能"模式 B 静默跑模板"，还能在诊断后无缝回到任意上游重绘。
+  </div>
+</div>
+
+<!-- ===== 11. 准备工作 & 待办 ===== -->
+<div class="section" id="plan">
+  <div class="section-label"><span class="num">11</span> 准备工作 & 待办</div>
+  <h2>准备工作</h2>
+  <p>上线前需要就绪的数据、接口与模型能力。</p>
+
+  <h3>① 数据表</h3>
+  <table class="spec-table">
+    <thead><tr><th>数据表</th><th>内容</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">商品属性宽表</td><td>商品 × 属性挂载（价格/品牌/功能…）+ 置信度</td><td>货盘圈选、属性归一、网格归格</td></tr>
+      <tr><td class="fw-600">交易汇总表</td><td>格内 GMV / 销量 / 均价 / 动销</td><td>指标计算</td></tr>
+      <tr><td class="fw-600">搜索汇总表</td><td>搜索量、搜索-供给缺口</td><td>供给类指标、诊断规则</td></tr>
+      <tr><td class="fw-600">渠道 / 竞对份额表</td><td>京东自营/POP/天猫/抖音 各渠道 GMV 份额</td><td>渠道占比、诊断基准</td></tr>
+      <tr><td class="fw-600">TopN 汇总表</td><td>按 GMV 排序的主力货盘</td><td>货盘圈选</td></tr>
+    </tbody>
+  </table>
+
+  <h3>② 接口</h3>
+  <table class="spec-table">
+    <thead><tr><th>接口</th><th>能力</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">取数 API</td><td>商品查询 + TopN + 条件筛选 + 明细下钻 / 导出</td></tr>
+      <tr><td class="fw-600">网格计算 API</td><td>维度交叉、商品归格、指标聚合、诊断规则执行</td></tr>
+      <tr><td class="fw-600">ERP 策略 API</td><td>读写策略与经验模板（scope / dimension / normalization / metric / merge / diagnosis）</td></tr>
+    </tbody>
+  </table>
+
+  <h3>③ 模型能力</h3>
+  <table class="spec-table">
+    <thead><tr><th>模型</th><th>能力</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">属性提取 / 归一模型</td><td>NLP 从标题/描述提取属性、同义词与区间归一、置信度打分</td></tr>
+      <tr><td class="fw-600">维度推荐模型</td><td>融合用户决策 / 站外趋势 / 策略模板，排序推荐拆解维度</td></tr>
+      <tr><td class="fw-600">洞察结论生成</td><td>基于诊断规则与格子指标，生成机会 / 风险的简短结论</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="margin-top:36px;">待办清单</h2>
+  <p>可勾选、可自行增删。</p>
+  <div class="mock-ui" style="max-width:640px;">
+    <div style="display:flex; gap:8px; margin-bottom:14px;">
+      <input id="todoInput" type="text" placeholder="添加一条待办，回车或点添加…" style="flex:1; padding:9px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; outline:none;" onkeydown="if(event.key===String.fromCharCode(69,110,116,101,114))addTodo();"/>
+      <button onclick="addTodo()" style="padding:9px 18px; border:none; border-radius:8px; background:var(--accent); color:#fff; font-size:13px; font-weight:600; cursor:pointer;">添加</button>
+    </div>
+    <ul id="todoList" style="list-style:none; padding:0; margin:0;"></ul>
+  </div>
+</div>
+
+<!-- ===== 最终交付物 ===== -->
+<div class="section">
+  <div class="section-label"><span class="num">✦</span> 最终交付物</div>
+  <h2>一次完整的插件使用，用户拿到</h2>
+  <div class="strategy-grid" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));">
+    <div class="strategy-card" style="text-align: center;">
+      <div style="font-size: 28px; margin-bottom: 8px;">🗺️</div>
+      <div class="sc-name">诊断过的网格</div>
+      <div style="font-size: 13px; color: var(--text2);">蓝海/红海/机会/现金牛/失守</div>
+    </div>
+    <div class="strategy-card" style="text-align: center;">
+      <div style="font-size: 28px; margin-bottom: 8px;">💡</div>
+      <div class="sc-name">洞察结论</div>
+      <div style="font-size: 13px; color: var(--text2);">4-6条核心发现+行动建议</div>
+    </div>
+    <div class="strategy-card" style="text-align: center;">
+      <div style="font-size: 28px; margin-bottom: 8px;">🔧</div>
+      <div class="sc-name">调优总结</div>
+      <div style="font-size: 13px; color: var(--text2);">用了哪些属性，合并了什么</div>
+    </div>
+    <div class="strategy-card" style="text-align: center; border-color: var(--accent);">
+      <div style="font-size: 28px; margin-bottom: 8px;">🧠</div>
+      <div class="sc-name" style="color: var(--accent);">策略已沉淀至ERP</div>
+      <div style="font-size: 13px; color: var(--text2);">偏好自动捕获，组织可复用</div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div><!-- .content-area -->
+</div><!-- .layout -->
+
+<script>
+// ===== Edit Mode Toggle =====
+function toggleEdit() {
+  const btn = document.getElementById('editToggle');
+  const isEditing = btn.classList.toggle('editing');
+  const editables = document.querySelectorAll(
+    '.section p, .section h2, .section h3, .hitl-desc, .hitl-action, ' +
+    '.insight-block .ib-item, .insight-block .ib-title, .mock-ui .mu-title, ' +
+    '.strategy-card .sc-name, .example-input .ei-text, .callout'
+  );
+  editables.forEach(el => {
+    el.contentEditable = isEditing ? 'true' : 'false';
+  });
+  btn.textContent = isEditing ? '编辑中 · 点击退出' : '编辑';
+}
+
+// ===== Active Nav Highlight =====
+const sections = document.querySelectorAll('.section, .hitl-section');
+const navItems = document.querySelectorAll('.nav-item');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navItems.forEach(item => {
+        item.classList.toggle('active', item.getAttribute('href') === '#' + entry.target.id);
+      });
+    }
+  });
+}, { rootMargin: '-20px 0px -60% 0px' });
+sections.forEach(s => observer.observe(s));
+
+// ===== Todo List (可增删) =====
+let __todos = [
+  {t:'数据开发：商品属性宽表 + TopN / 交易 / 搜索 / 渠道份额 汇总表', done:false},
+  {t:'算法：属性提取 + 归一模型（含置信度打分）', done:false},
+  {t:'算法：维度推荐模型（融合决策/趋势/策略）', done:false},
+  {t:'应用：取数 API + 网格计算 API + 明细下钻/导出', done:false},
+  {t:'算法+应用：诊断规则引擎（用指标配置规则）', done:false},
+  {t:'算法：洞察结论生成（机会/风险简短结论）', done:false},
+  {t:'应用+算法：ERP 策略 API 与经验模板读写', done:false},
+];
+function renderTodos(){
+  const ul = document.getElementById('todoList');
+  if(!ul) return;
+  ul.innerHTML = '';
+  __todos.forEach((it, i) => {
+    const li = document.createElement('li');
+    li.style.cssText = 'display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid var(--surface2); font-size:14px;';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = it.done; cb.style.cssText='width:16px;height:16px;cursor:pointer;accent-color:var(--accent);';
+    cb.onchange = () => { __todos[i].done = cb.checked; renderTodos(); };
+    const span = document.createElement('span');
+    span.textContent = it.t;
+    span.style.cssText = 'flex:1;' + (it.done ? 'text-decoration:line-through;color:var(--text2);' : 'color:var(--text);');
+    const del = document.createElement('button');
+    del.textContent = '删除';
+    del.style.cssText = 'border:1px solid var(--border);background:#fff;color:var(--text2);border-radius:6px;padding:2px 10px;font-size:12px;cursor:pointer;';
+    del.onclick = () => { __todos.splice(i,1); renderTodos(); };
+    li.appendChild(cb); li.appendChild(span); li.appendChild(del);
+    ul.appendChild(li);
+  });
+}
+function addTodo(){
+  const inp = document.getElementById('todoInput');
+  if(!inp) return;
+  const v = inp.value.trim();
+  if(!v) return;
+  __todos.push({t:v, done:false});
+  inp.value = '';
+  renderTodos();
+}
+renderTodos();
+</script>
+</body>
+</html>
